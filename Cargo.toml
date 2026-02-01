@@ -1,0 +1,30 @@
+[package]
+name = "mini_olap_database"
+version = "0.1.0"
+edition = "2021"
+authors = ["RustyCube Team"]
+description = "A lightweight, in-memory OLAP database engine for educational purposes"
+license = "MIT"
+
+[dependencies]
+# Error handling
+thiserror = "1.0"
+anyhow = "1.0"
+
+# CSV handling
+csv = "1.3"
+serde = { version = "1.0", features = ["derive"] }
+
+# CLI/REPL
+rustyline = "14.0"
+
+# Parser (optional - we might use nom for learning)
+nom = "7.1"
+
+# Logging
+log = "0.4"
+env_logger = "0.11"
+
+[dev-dependencies]
+# Testing utilities
+pretty_assertions = "1.4"

@@ -1,0 +1,115 @@
+//! # RustyCube - Mini OLAP Database Engine
+//!
+//! RustyCube is a lightweight, in-memory OLAP (Online Analytical Processing) database engine
+//! implemented in Rust. Its primary purpose is educational: to demonstrate the core principles
+//! of column-oriented storage, query execution, and aggregation.
+//!
+//! ## Architecture Overview
+//!
+//! RustyCube is organized into several key modules:
+//!
+//! - [`error`] - Comprehensive error handling and result types
+//! - [`types`] - Core data types (DataType, Value, etc.)
+//! - [`column`] - Columnar storage implementation
+//! - [`table`] - Table structure holding columns
+//! - [`catalog`] - Metadata management for tables
+//! - [`ingest`] - CSV data ingestion
+//! - [`parser`] - SQL query parsing
+//! - [`execution`] - Query execution engine
+//! - [`operators`] - Physical query operators
+//! - [`aggregates`] - Aggregate functions
+//!
+//! ## Key Features
+//!
+//! - **Columnar Storage**: Data is stored by column, enabling efficient analytical queries
+//! - **Vectorized Execution**: Operations process batches of data for CPU cache efficiency
+//! - **Type Safety**: Strong typing with compile-time guarantees
+//! - **SQL-like Interface**: Simple query language for data manipulation
+//!
+//! ## Quick Start
+//!
+//! ```no_run
+//! use rusty_cube::error::Result;
+//! use rusty_cube::catalog::Catalog;
+//! use rusty_cube::ingest::load_csv;
+//!
+//! fn main() -> Result<()> {
+//!     let mut catalog = Catalog::new();
+//!
+//!     // Load data from CSV
+//!     load_csv("data.csv", "users", &mut catalog)?;
+//!
+//!     // Query the data
+//!     // (implementation details follow...)
+//!
+//!     Ok(())
+//! }
+//! ```
+//!
+//! ## Learning Resources
+//!
+//! This codebase is designed to help you learn about:
+//! - Database internals and column-oriented storage
+//! - Rust programming patterns (traits, generics, error handling)
+//! - Query execution and optimization
+//! - Systems programming concepts
+
+// Re-export commonly used types
+pub use column::{create_column, Column, FloatColumn, IntColumn, StringColumn};
+pub use error::{DatabaseError, Result};
+pub use types::{DataType, Value};
+
+// ============================================================================
+// MODULE DECLARATIONS
+// ============================================================================
+
+// Core error handling - defined first as other modules depend on it
+pub mod error;
+
+// TODO: Add module declarations as we implement them
+pub mod column;
+pub mod types;
+// pub mod table;
+// pub mod catalog;
+// pub mod ingest;
+// pub mod parser;
+// pub mod execution;
+// pub mod operators;
+// pub mod aggregates;
+
+// ============================================================================
+// VERSION INFORMATION
+// ============================================================================
+
+/// The current version of RustyCube
+pub const VERSION: &str = env!("CARGO_PKG_VERSION");
+
+/// The name of the database
+pub const NAME: &str = env!("CARGO_PKG_NAME");
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// Test that library information is accessible
+    #[test]
+    fn test_version_info() {
+        assert!(!VERSION.is_empty());
+        assert_eq!(NAME, "mini_olap_database");
+    }
+
+    /// Test that Result type alias works
+    #[test]
+    fn test_result_type() {
+        // This should compile and work
+        let result: Result<i32> = Ok(42);
+        assert_eq!(result.unwrap(), 42);
+    }
+
+    /// Test that DatabaseError is accessible
+    #[test]
+    fn test_error_type() {
+        let err = DatabaseError::column_error("test");
+        assert_eq!(err.to_string(), "Column error: test");
+    }
+}
