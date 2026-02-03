@@ -2,11 +2,11 @@ Here is a Product Requirement Document (PRD) for a **Mini OLAP (Online Analytica
 
 ---
 
-# Product Requirement Document: "RustyCube" (Mini OLAP DB)
+# Product Requirement Document: "mini_rust_olap" (Mini OLAP DB)
 
 ## 1. Project Overview
 
-**RustyCube** is a lightweight, in-memory OLAP database engine implemented in Rust. Its primary purpose is educational: to demonstrate the core principles of column-oriented storage, query execution, and aggregation without the complexities of a production-grade distributed system.
+**mini_rust_olap** is a lightweight, in-memory OLAP (Online Analytical Processing) database engine implemented in Rust. Its primary purpose is educational: to demonstrate the core principles of column-oriented storage, query execution, and aggregation without the complexities of a production-grade distributed system.
 
 ### Goals
 

@@ -41,9 +41,9 @@ use std::str::FromStr;
 
 use crate::error::{DatabaseError, Result};
 
-/// Represents the data type of a column in the database schema
+/// Represents data type of a column in the database schema
 ///
-//! This enum defines the supported data types for Mini Rust OLAP columns.
+/// This enum defines supported data types for Mini Rust OLAP columns.
 /// Each variant corresponds to a specific storage layout and operations.
 ///
 /// ## Type Characteristics

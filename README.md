@@ -442,11 +442,11 @@ cargo doc --open
 ### Example 1: Creating a Simple Table
 
 ```rust
-use mini_olap_database::{
+use mini_rust_olap::{
     Column, create_column, DataType, Value
 };
 
-fn main() -> mini_olap_database::Result<()> {
+fn main() -> mini_rust_olap::Result<()> {
     // Create columns dynamically based on data type
     let mut ids = create_column(DataType::Int64);
     let mut names = create_column(DataType::String);
@@ -468,9 +468,9 @@ fn main() -> mini_olap_database::Result<()> {
 ### Example 2: Type Conversion
 
 ```rust
-use mini_olap_database::{Value, DataType};
+use mini_rust_olap::{Value, DataType};
 
-fn main() -> mini_olap_database::Result<()> {
+fn main() -> mini_rust_olap::Result<()> {
     let int_value = Value::Int64(42);
     
     // Cast to float
@@ -488,10 +488,10 @@ fn main() -> mini_olap_database::Result<()> {
 ### Example 3: Manual GROUP BY
 
 ```rust
-use mini_olap_database::{Column, IntColumn, StringColumn, Value};
+use mini_rust_olap::{Column, IntColumn, StringColumn, Value};
 use std::collections::HashMap;
 
-fn main() -> mini_olap_database::Result<()> {
+fn main() -> mini_rust_olap::Result<()> {
     let mut departments = StringColumn::new();
     let mut salaries = IntColumn::new();
 
