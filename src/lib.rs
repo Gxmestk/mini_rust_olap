@@ -10,14 +10,14 @@
 //!
 //! - [`error`] - Comprehensive error handling and result types
 //! - [`types`] - Core data types (DataType, Value, etc.)
-//! - [`column`] - Columnar storage implementation
-//! - [`table`] - Table structure holding columns
-//! - [`catalog`] - Metadata management for tables
-//! - [`ingest`] - CSV data ingestion
-//! - [`parser`] - SQL query parsing
-//! - [`execution`] - Query execution engine
-//! - [`operators`] - Physical query operators
-//! - [`aggregates`] - Aggregate functions
+//! - [`mod@column`] - Columnar storage implementation
+//! - \[`table`] - Table structure holding columns *(TODO)*
+//! - \[`catalog`] - Metadata management for tables *(TODO)*
+//! - \[`ingest`] - CSV data ingestion *(TODO)*
+//! - \[`parser`] - SQL query parsing *(TODO)*
+//! - \[`execution`] - Query execution engine *(TODO)*
+//! - \[`operators`] - Physical query operators *(TODO)*
+//! - \[`aggregates`] - Aggregate functions *(TODO)*
 //!
 //! ## Key Features
 //!

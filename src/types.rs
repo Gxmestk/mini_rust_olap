@@ -20,7 +20,7 @@
 //! - **Rust Enums**: Using Rust's powerful enum system for type safety
 //! - **Copy vs Clone**: Integers and floats implement `Copy` (cheap to copy)
 //! - **String handling**: Strings are heap-allocated and use `String` type
-//! - **NULL handling**: Option<Value> represents nullable values
+//! - **NULL handling**: `Option<Value>` represents nullable values
 //!
 //! ## Usage Example
 //!
