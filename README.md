@@ -9,7 +9,7 @@
 
 **A lightweight, in-memory OLAP database engine built with Rust for educational purposes**
 
-[Features](#-features) • [Architecture](#-architecture) • [Quick Start](#-quick-start) • [Learning](#-learning)
+[Features](#-features) • [Architecture](#%EF%B8%8F-architecture) • [Quick Start](#-quick-start) • [Learning Path](#-learning-path)
 
 </div>
 
