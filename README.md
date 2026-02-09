@@ -4,8 +4,8 @@
 
 [![Rust](https://img.shields.io/badge/rust-1.70%2B-orange.svg)](https://www.rust-lang.org/)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
-[![Tests](https://img.shields.io/badge/tests-127%20passing-green.svg)]()
-[![Phase](https://img.shields.io/badge/phase-1%20complete-success.svg)]()
+[![Tests](https://img.shields.io/badge/tests-130%20passing-green.svg)]()
+[![Phase](https://img.shields.io/badge/phase-2%20complete-success.svg)]()
 
 **A lightweight, in-memory OLAP database engine built with Rust for educational purposes**
 
@@ -41,12 +41,12 @@ Unlike production databases that are complex and hard to understand, Mini Rust O
 
 ## ✨ Features
 
-### Current Implementation (Phase 1 - Complete ✅)
+### Current Implementation (Phase 2 - Complete ✅)
 
 #### 🏗️ Core Foundation
-- **Error Handling**: Comprehensive error types using `thiserror`
-- **Data Types**: Support for `Int64`, `Float64`, and `String` with type safety
-- **Columnar Storage**: Efficient column-oriented data layout
+- **Error Handling**: Comprehensive error types using `thiserror` (11 tests)
+- **Data Types**: Support for `Int64`, `Float64`, and `String` with type safety (26 tests)
+- **Columnar Storage**: Efficient column-oriented data layout (33 tests)
 
 #### 📊 Column Types
 - **IntColumn**: 64-bit integer storage in `Vec<i64>`
@@ -59,9 +59,20 @@ Unlike production databases that are complex and hard to understand, Mini Rust O
 - **Projection**: SELECT specific columns
 - **Grouping**: GROUP BY with aggregation
 
+#### 🗃️ Table Management (Phase 2)
+- **Schema Definition**: Define table structure with column names and types
+- **Data Insertion**: Add rows with automatic type conversion
+- **Column Operations**: Add, drop, select, and query columns (33 tests)
+- **Schema Validation**: Ensure data integrity with type checks
+
+#### 📚 Catalog System (Phase 2)
+- **Table Registry**: Central metadata repository for all tables
+- **Table Operations**: Register, retrieve, drop, and rename tables (25 tests)
+- **Query Support**: Check existence, list tables, and access metadata
+- **Integration**: Seamless table-catalog coordination (130 total tests)
+
 ### Planned Features (Roadmap)
 
-- [ ] Phase 2: Table & Catalog management
 - [ ] Phase 3: CSV data ingestion with type inference
 - [ ] Phase 4: Physical query operators (Scan, Filter, Project, Aggregate)
 - [ ] Phase 5: SQL parser for SELECT statements
@@ -273,20 +284,38 @@ cargo tarpaulin --out Html
 - **Manual Query Tests**: 40
 - **Code Coverage**: ~20% (growing with each phase)
 
-### Phase 1 Deliverables
+### Documentation & Assessments
 
-✅ **Comprehensive Documentation**
-- **Phase 1 Learning Guide** (`docs/phase1-learning-guide.md`) - 2,668 lines covering 10 chapters
+#### Phase 1: Foundation
+
+✅ **Phase 1 Learning Guide** (`docs/phase1-learning-guide.md`) - 2,668 lines covering 10 chapters
   - Rust programming fundamentals and best practices
   - Database internals and column-oriented storage
   - Code examples with detailed explanations
   - Self-assessment questions and exercises
   
-✅ **Phase 1 Assessment** (`docs/code-review-assessment.md`) - 432 lines
+✅ **Phase 1 Assessment** (`docs/phase1-assessment.md`) - 431 lines
   - 35 multiple-choice questions covering Phase 1 concepts
   - Comprehensive answer key with detailed explanations
   - Scoring guide and study recommendations
   - Tests understanding of Rust patterns and database concepts
+
+#### Phase 2: Storage Layer
+
+✅ **Phase 2 Learning Guide** (`docs/phase2-learning-guide.md`) - Comprehensive guide covering:
+  - Table structure and schema management
+  - Catalog design patterns for metadata management
+  - Advanced Rust concepts (HashMap, Clone, traits)
+  - Integration testing strategies
+  - Self-assessment questions and exercises
+
+✅ **Phase 2 Assessment** (`docs/phase2-assessment.md`) - 484 lines
+  - 35 multiple-choice questions covering Phase 2 concepts
+  - Tests understanding of table operations, catalog management, and Rust collections
+  - Detailed answer key with explanations
+  - Scoring guide and study recommendations
+
+#### General Documentation
 
 ✅ **CI/CD Pipeline** (`.githooks/`)
 - Pre-commit hook with comprehensive checks (formatting, linting, tests, documentation)
@@ -294,19 +323,24 @@ cargo tarpaulin --out Html
 - Automated quality assurance pipeline
 - 998 lines of automation code
 
+✅ **Code Review Workflow** (`docs/code-review-workflow.md`) - 2,590 lines
+  - Complete guide to Pull Requests and code reviews
+  - Git workflow best practices
+  - Communication guidelines for code reviews
 
-### 📝 Phase 1 Code Review Assessment
+✅ **Code Review Assessment** (`docs/code-review-assessment.md`) - 234 lines
 
-Comprehensive evaluation materials are available to assess your understanding of Phase 1 concepts:
 
-**Code Review Assessment** (`docs/code-review-assessment.md`) - 432 lines
-- 35 multiple-choice questions covering Rust patterns and database concepts
-- Tests understanding of traits, error handling, generics, and columnar storage
+### 📝 Code Review Assessment
+
+**Code Review Assessment** (`docs/code-review-assessment.md`) - 234 lines
+- 15 multiple-choice questions covering Git workflow, Pull Requests, and code review best practices
+- Tests understanding of version control, collaborative development, and review processes
 - Detailed answer key with explanations for each question
-- Scoring guide to track your progress
+- Scoring guide to evaluate your code review knowledge
 - Study recommendations based on your score
 
-> 💡 **Assessment Tip**: After completing Phase 1, take the assessment to identify areas for improvement before moving to Phase 2.
+> 💡 **Assessment Tip**: Practice with Git and GitHub to reinforce your understanding of the code review workflow before reviewing Phase 2 pull requests.
 
 ---
 
@@ -340,8 +374,9 @@ This project demonstrates:
 2. `src/types.rs` - Core data type design
 3. `src/column.rs` - Columnar storage implementation
 4. `tests/manual_query.rs` - Manual query operations
-5. *(Future)* `src/table.rs` - Table structure
-6. *(Future)* `src/execution.rs` - Query execution engine
+5. `src/table.rs` - Table structure and schema management
+6. `src/catalog.rs` - Metadata repository for table management
+7. *(Future)* `src/execution.rs` - Query execution engine
 
 ---
 
@@ -351,8 +386,8 @@ This project demonstrates:
 
 | Phase | Description | Status | Tests |
 |-------|-------------|--------|-------|
-| 1 | Foundation (Types, Columns) | ✅ Complete | 127 |
-| 2 | Storage Layer (Table, Catalog) | 🚀 Starting | - |
+| 1 | Foundation (Types, Columns) | ✅ Complete | 87 |
+| 2 | Storage Layer (Table, Catalog) | ✅ Complete | 58 |
 | 3 | CSV Ingestion | ❌ Not Started | - |
 | 4 | Query Operators | ❌ Not Started | - |
 | 5 | SQL Parser | ❌ Not Started | - |
@@ -364,8 +399,8 @@ This project demonstrates:
 - ✅ `error` - Error handling complete (11 tests)
 - ✅ `types` - Core types complete (26 tests)
 - ✅ `column` - Column implementations complete (33 tests)
-- ❌ `table` - Table structure (next phase)
-- ❌ `catalog` - Metadata management (next phase)
+- ✅ `table` - Table structure complete (33 tests)
+- ✅ `catalog` - Metadata management complete (25 tests)
 - ❌ `ingest` - CSV ingestion
 - ❌ `parser` - SQL parsing
 - ❌ `execution` - Query execution
@@ -384,8 +419,8 @@ mini_rust_olap/
 │   ├── error.rs             # Error types (complete)
 │   ├── types.rs             # Data types (complete)
 │   ├── column.rs            # Column implementations (complete)
-│   ├── table.rs             # Table structure (next)
-│   ├── catalog.rs           # Metadata management (next)
+│   ├── table.rs             # Table structure (complete)
+│   ├── catalog.rs           # Metadata management (complete)
 │   ├── ingest.rs            # CSV ingestion
 │   ├── parser.rs            # SQL parser
 │   ├── execution.rs         # Query execution
@@ -634,8 +669,8 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 ## 📊 Project Statistics
 
 - **Lines of Code**: ~2000
-- **Test Count**: 127 (and growing!)
-- **Number of Modules**: 3 implemented, 6 planned
+- **Test Count**: 130 (and growing!)
+- **Number of Modules**: 5 implemented, 4 planned
 - **Dependencies**: 8 (minimal for learning purposes)
 - **Build Time**: ~2 seconds (optimized for fast iteration)
 
