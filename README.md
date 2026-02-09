@@ -278,10 +278,10 @@ cargo tarpaulin --out Html
 
 ### Current Test Status
 
-- **Total Tests**: 127 (all passing ✅)
-- **Unit Tests**: 72
-- **Integration Tests**: 15
-- **Manual Query Tests**: 40
+- **Total Tests**: 188 (185 passing ✅, 3 ignored)
+- **Library Tests**: 130 (unit tests for error, types, column, table, catalog)
+- **Integration Tests**: 15 (manual query execution tests)
+- **Query Tests**: 43 (40 passed, 3 ignored)
 - **Code Coverage**: ~20% (growing with each phase)
 
 ### Documentation & Assessments
@@ -386,17 +386,18 @@ This project demonstrates:
 
 | Phase | Description | Status | Tests |
 |-------|-------------|--------|-------|
-| 1 | Foundation (Types, Columns) | ✅ Complete | 87 |
-| 2 | Storage Layer (Table, Catalog) | ✅ Complete | 58 |
+| 1 | Foundation (Types, Columns) | ✅ Complete | 130 |
+| 2 | Storage Layer (Table, Catalog) | ✅ Complete | 55 |
 | 3 | CSV Ingestion | ❌ Not Started | - |
 | 4 | Query Operators | ❌ Not Started | - |
 | 5 | SQL Parser | ❌ Not Started | - |
 | 6 | Query Planning | ❌ Not Started | - |
 | 7 | REPL Interface | ❌ Not Started | - |
 
+
 ### Module Status
 
-- ✅ `error` - Error handling complete (11 tests)
+- ✅ `error` - Error handling complete (10 tests)
 - ✅ `types` - Core types complete (26 tests)
 - ✅ `column` - Column implementations complete (33 tests)
 - ✅ `table` - Table structure complete (33 tests)
@@ -669,7 +670,7 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 ## 📊 Project Statistics
 
 - **Lines of Code**: ~2000
-- **Test Count**: 130 (and growing!)
+- **Test Count**: 185 (and growing!)
 - **Number of Modules**: 5 implemented, 4 planned
 - **Dependencies**: 8 (minimal for learning purposes)
 - **Build Time**: ~2 seconds (optimized for fast iteration)
@@ -693,6 +694,12 @@ This project includes comprehensive educational materials:
   - Detailed answer key with explanations for each answer
   - Scoring rubric to track your progress
   - Study recommendations based on your score
+
+- **CI/CD Pipeline Documentation**: 998 lines of automation setup including:
+  - Pre-commit hooks for code quality checks (171 lines)
+  - Pre-push hooks for comprehensive validation (373 lines)
+  - Setup script for hook installation (454 lines)
+  - Ensures code quality through automated testing and formatting
 
 ### 🔧 CI/CD for Learning
 
