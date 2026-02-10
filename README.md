@@ -4,8 +4,8 @@
 
 [![Rust](https://img.shields.io/badge/rust-1.70%2B-orange.svg)](https://www.rust-lang.org/)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
-[![Tests](https://img.shields.io/badge/tests-168%20passing-green.svg)]()
-[![Phase](https://img.shields.io/badge/phase-3%20complete-success.svg)]()
+[![Tests](https://img.shields.io/badge/tests-341%20passing-green.svg)]()
+[![Phase](https://img.shields.io/badge/phase-4%20complete-success.svg)]()
 
 **A lightweight, in-memory OLAP database engine built with Rust for educational purposes**
 
@@ -294,11 +294,10 @@ cargo tarpaulin --out Html
 
 ### Current Test Status
 
-- **Total Tests**: 188 (185 passing ✅, 3 ignored)
-- **Library Tests**: 130 (unit tests for error, types, column, table, catalog)
-- **Integration Tests**: 15 (manual query execution tests)
-- **Query Tests**: 43 (40 passed, 3 ignored)
-- **Code Coverage**: ~20% (growing with each phase)
+- **Total Tests**: 341 passing ✅ (310 library tests + 31 integration tests)
+- **Library Tests**: 310 (error: 10, types: 26, column: 33, table: 33, catalog: 25, ingest: 38, execution: 77, aggregates: 65, lib: 3)
+- **Integration Tests**: 31 (operator chaining: 16, manual query: 15)
+- **Code Coverage**: High test coverage across all implemented phases (Foundation, Storage Layer, CSV Ingestion, Query Operators)
 
 ### Documentation & Assessments
 
@@ -315,6 +314,24 @@ cargo tarpaulin --out Html
   - Comprehensive answer key with detailed explanations
   - Scoring guide and study recommendations
 
+#### Phase 2: Storage Layer
+
+✅ **Phase 2 Learning Guide** (`docs/phase2-learning-guide.md`) - Comprehensive guide covering:
+  - Table design fundamentals and data organization
+  - HashMap and collections in Rust for efficient lookups
+  - Advanced trait implementations and type safety
+  - Schema validation and enforcement mechanisms
+  - Catalog design patterns for metadata management
+  - Error handling for complex data structures
+  - Testing strategies for storage layer components
+  - Integration and modularity best practices
+
+✅ **Phase 2 Assessment** (`docs/phase2-assessment.md`)
+  - 35 multiple-choice questions across 4 parts
+  - Topics: Rust fundamentals, Table operations, Catalog management, Advanced topics
+  - Comprehensive answer key with detailed explanations
+  - Scoring guide with readiness indicators for Phase 3
+
 #### Phase 3: CSV Ingestion
 
 ✅ **Phase 3 Learning Guide** (`docs/phase3-learning-guide.md`) - 2,009 lines covering 11 chapters
@@ -330,7 +347,7 @@ cargo tarpaulin --out Html
   - Scoring guide and preparation checklist for Phase 4
   - Tests understanding of Rust patterns and database concepts
 
-#### Phase 2: Storage Layer
+#### Phase 4: Query Execution Engine
 
 ✅ **Phase 4 Learning Guide** (`docs/phase4-learning-guide.md`) - 2,895 lines covering:
   - Query execution foundation and vectorized processing
@@ -426,29 +443,29 @@ This project demonstrates:
 
 | Phase | Description | Status | Tests |
 |-------|-------------|--------|-------|
-| 1 | Foundation (Types, Columns) | ✅ Complete | 130 |
+| 1 | Foundation (Types, Columns) | ✅ Complete | 69 |
 | 2 | Storage Layer (Table, Catalog) | ✅ Complete | 58 |
 | 3 | CSV Ingestion | ✅ Complete | 38 |
-| 4 | Query Operators | ✅ Complete | 326 |
+| 4 | Query Operators | ✅ Complete | 145 |
 | 5 | SQL Parser | ❌ Not Started | - |
 | 6 | Query Planning | ❌ Not Started | - |
 | 7 | REPL Interface | ❌ Not Started | - |
 
-**Total Tests**: 552 (552 passing ✅)
+**Total Tests**: 341 (341 passing ✅, including 31 integration tests)
 
 
 ### Module Status
 
-- ✅ `error` - Error handling complete (11 tests)
+- ✅ `error` - Error handling complete (10 tests)
 - ✅ `types` - Core types complete (26 tests)
 - ✅ `column` - Column implementations complete (33 tests)
 - ✅ `table` - Table structure complete (33 tests)
 - ✅ `catalog` - Metadata management complete (25 tests)
 - ✅ `ingest` - CSV ingestion complete (38 tests)
-- ❌ `parser` - SQL parsing
-- ✅ `execution` - Query execution engine (310 tests)
+- ❌ `parser` - SQL parsing (not started)
+- ✅ `execution` - Query execution engine (77 tests)
 - ✅ `aggregates` - Aggregate functions (65 tests)
-- [ ] `parser` - SQL parsing
+- ✅ `lib` - Library exports and integration (3 tests)
 
 ---
 
@@ -711,11 +728,11 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 
 ## 📊 Project Statistics
 
-- **Lines of Code**: ~2000
-- **Test Count**: 185 (and growing!)
-- **Number of Modules**: 5 implemented, 4 planned
+- **Lines of Code**: 9,723 (comprehensive implementation)
+- **Test Count**: 341 passing tests (high test coverage)
+- **Number of Modules**: 8 implemented (error, catalog, column, ingest, table, types, aggregates, execution), with additional modules planned for future phases
 - **Dependencies**: 8 (minimal for learning purposes)
-- **Build Time**: ~2 seconds (optimized for fast iteration)
+- **Build Time**: ~3 seconds (optimized for fast iteration)
 
 ---
 
