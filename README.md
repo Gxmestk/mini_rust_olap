@@ -41,7 +41,7 @@ Unlike production databases that are complex and hard to understand, Mini Rust O
 
 ## ✨ Features
 
-### Current Implementation (Phase 2 - Complete ✅)
+### Current Implementation (Phase 4 - Complete ✅)
 
 #### 🏗️ Core Foundation
 - **Error Handling**: Comprehensive error types using `thiserror` (11 tests)
@@ -78,9 +78,19 @@ Unlike production databases that are complex and hard to understand, Mini Rust O
 - **Error Handling**: Comprehensive error handling for malformed CSVs
 - **Integration**: Direct catalog registration with load_csv_into_catalog (38 tests)
 
+#### 🚀 Query Execution Engine (Phase 4)
+- **Vectorized Processing**: Batch-based columnar execution for performance
+- **TableScan Operator**: Read data from tables with column pruning and batch sizing (33 tests)
+- **Filter Operator**: Predicate evaluation with BinaryComparison, AND, and OR logic (19 tests)
+- **Project Operator**: Column selection, reordering, and aliasing (22 tests)
+- **Aggregate Functions**: Count, Sum, Min, Max, Avg with stateful design (65 tests)
+- **GroupBy Operator**: Hash-based grouping with multiple aggregates per group (16 tests)
+- **Operator Chaining**: Seamless integration of operators in query pipelines
+- **Integration Testing**: 16 comprehensive tests for operator chains
+
 ### Planned Features (Roadmap)
 
-- [ ] Phase 4: Physical query operators (Scan, Filter, Project, Aggregate)
+- [x] Phase 4: Physical query operators (Scan, Filter, Project, Aggregate) ✅
 - [ ] Phase 5: SQL parser for SELECT statements
 - [ ] Phase 6: Query planning and optimization
 - [ ] Phase 7: Interactive REPL (Read-Eval-Print Loop)
@@ -322,18 +332,28 @@ cargo tarpaulin --out Html
 
 #### Phase 2: Storage Layer
 
-✅ **Phase 2 Learning Guide** (`docs/phase2-learning-guide.md`) - Comprehensive guide covering:
-  - Table structure and schema management
-  - Catalog design patterns for metadata management
-  - Advanced Rust concepts (HashMap, Clone, traits)
-  - Integration testing strategies
-  - Self-assessment questions and exercises
+✅ **Phase 4 Learning Guide** (`docs/phase4-learning-guide.md`) - 2,895 lines covering:
+  - Query execution foundation and vectorized processing
+  - TableScan operator with column pruning and batch sizing
+  - Filter operator with predicate system (BinaryComparison, AND, OR)
+  - Project operator with column selection and aliasing
+  - Aggregate functions (Count, Sum, Min, Max, Avg) with stateful design
+  - GroupBy operator with hash-based grouping and GroupKey
+  - Operator integration testing patterns for chaining
+  - Advanced topics (predicate/projection pushdown, vectorization, streaming)
+  - Best practices and design patterns
+  - Learning outcomes and self-assessment questions
+  - Practical exercises (Limit, Distinct, Variance, Streaming GroupBy)
+  - Appendices (code summary, benchmarks, common errors, glossary)
 
-✅ **Phase 2 Assessment** (`docs/phase2-assessment.md`) - 484 lines
-  - 35 multiple-choice questions covering Phase 2 concepts
-  - Tests understanding of table operations, catalog management, and Rust collections
-  - Detailed answer key with explanations
-  - Scoring guide and study recommendations
+✅ **Phase 4 Assessment** (`docs/phase4-assessment.md`) - 1,220 lines
+  - 75 multiple-choice questions across 8 parts covering all Phase 4 topics
+  - Complete answer key with explanations for each question
+  - Scoring guide (70% passing threshold)
+  - Performance breakdown by topic with mastery levels
+  - Self-reflection questions for understanding evaluation
+  - Preparation checklist for Phase 5 (SQL Parser)
+  - Study tips for before/during/after assessment
 
 #### General Documentation
 
@@ -409,12 +429,12 @@ This project demonstrates:
 | 1 | Foundation (Types, Columns) | ✅ Complete | 130 |
 | 2 | Storage Layer (Table, Catalog) | ✅ Complete | 58 |
 | 3 | CSV Ingestion | ✅ Complete | 38 |
-| 4 | Query Operators | ❌ Not Started | - |
+| 4 | Query Operators | ✅ Complete | 326 |
 | 5 | SQL Parser | ❌ Not Started | - |
 | 6 | Query Planning | ❌ Not Started | - |
 | 7 | REPL Interface | ❌ Not Started | - |
 
-**Total Tests**: 226 (226 passing ✅)
+**Total Tests**: 552 (552 passing ✅)
 
 
 ### Module Status
@@ -426,9 +446,9 @@ This project demonstrates:
 - ✅ `catalog` - Metadata management complete (25 tests)
 - ✅ `ingest` - CSV ingestion complete (38 tests)
 - ❌ `parser` - SQL parsing
-- ❌ `execution` - Query execution
-- ❌ `operators` - Physical operators
-- ❌ `aggregates` - Aggregate functions
+- ✅ `execution` - Query execution engine (310 tests)
+- ✅ `aggregates` - Aggregate functions (65 tests)
+- [ ] `parser` - SQL parsing
 
 ---
 
