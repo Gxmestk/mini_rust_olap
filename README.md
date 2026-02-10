@@ -41,7 +41,7 @@ Unlike production databases that are complex and hard to understand, Mini Rust O
 
 ## ✨ Features
 
-### Current Implementation (Phase 4 - Complete ✅)
+### Current Implementation (Phase 5 - Complete ✅)
 
 #### 🏗️ Core Foundation
 - **Error Handling**: Comprehensive error types using `thiserror` (11 tests)
@@ -88,10 +88,22 @@ Unlike production databases that are complex and hard to understand, Mini Rust O
 - **Operator Chaining**: Seamless integration of operators in query pipelines
 - **Integration Testing**: 16 comprehensive tests for operator chains
 
+#### 🔧 SQL Parser (Phase 5)
+- **Tokenizer**: Lexical analysis with 20+ token types including keywords, operators, and literals (10 tests)
+- **AST Design**: Abstract Syntax Tree with Query, SelectStatement, and Expression structures
+- **Recursive Descent Parser**: Full SQL SELECT statement parsing (9 tests)
+- **Expression Parsing**: Support for arithmetic, logical, and comparison operators with proper precedence
+- **Aggregate Functions**: Parse COUNT, SUM, AVG, MIN, MAX with column and wildcard arguments
+- **WHERE Clauses**: Complex boolean expressions with AND, OR, NOT, and nested predicates
+- **GROUP BY Parsing**: Multi-column grouping with aggregate function support
+- **Error Handling**: Descriptive error messages with line/column tracking using thiserror
+- **Case Sensitivity**: Keywords are case-insensitive, identifiers converted to lowercase
+- **Comprehensive Testing**: 19 tests covering queries, expressions, edge cases, and tokenizer
+
 ### Planned Features (Roadmap)
 
 - [x] Phase 4: Physical query operators (Scan, Filter, Project, Aggregate) ✅
-- [ ] Phase 5: SQL parser for SELECT statements
+- [x] Phase 5: SQL parser for SELECT statements ✅
 - [ ] Phase 6: Query planning and optimization
 - [ ] Phase 7: Interactive REPL (Read-Eval-Print Loop)
 
@@ -294,10 +306,10 @@ cargo tarpaulin --out Html
 
 ### Current Test Status
 
-- **Total Tests**: 341 passing ✅ (310 library tests + 31 integration tests)
-- **Library Tests**: 310 (error: 10, types: 26, column: 33, table: 33, catalog: 25, ingest: 38, execution: 77, aggregates: 65, lib: 3)
+- **Total Tests**: 329 passing ✅ (298 library tests + 31 integration tests)
+- **Library Tests**: 298 (error: 10, types: 26, column: 33, table: 33, catalog: 25, ingest: 38, execution: 77, aggregates: 65, parser: 19, lib: 3)
 - **Integration Tests**: 31 (operator chaining: 16, manual query: 15)
-- **Code Coverage**: High test coverage across all implemented phases (Foundation, Storage Layer, CSV Ingestion, Query Operators)
+- **Code Coverage**: High test coverage across all implemented phases (Foundation, Storage Layer, CSV Ingestion, Query Operators, SQL Parser)
 
 ### Documentation & Assessments
 
@@ -371,6 +383,29 @@ cargo tarpaulin --out Html
   - Self-reflection questions for understanding evaluation
   - Preparation checklist for Phase 5 (SQL Parser)
   - Study tips for before/during/after assessment
+
+#### Phase 5: SQL Parser
+
+✅ **Phase 5 Learning Guide** (`docs/phase5-learning-guide.md`) - 2,170 lines covering:
+  - Introduction to SQL parsing and its role in database systems
+  - Tokenizer/Lexer design with 20+ token types
+  - Abstract Syntax Tree (AST) design principles
+  - Recursive descent parsing methodology
+  - Expression parsing with operator precedence handling
+  - SQL clause parsing (SELECT, FROM, WHERE, GROUP BY)
+  - Aggregate function parsing (COUNT, SUM, AVG, MIN, MAX)
+  - Error handling strategies with descriptive messages
+  - Testing strategies for parsers
+  - Best practices and design patterns
+  - Learning outcomes and self-assessment questions
+  - 15 practical exercises (beginner, intermediate, advanced)
+
+✅ **Phase 5 Assessment** (`docs/phase5-assessment.md`) - 785 lines
+  - 67 multiple-choice questions across 9 parts
+  - Parts: Tokenizer/Lexer Fundamentals, AST Design, Recursive Descent Parsing, Expression Parsing, SQL Clauses, Aggregate Functions, Error Handling, Testing Strategies, Advanced Topics
+  - Complete answer key with detailed explanations
+  - Scoring guide with readiness indicators for Phase 6
+  - Self-reflection questions and preparation checklist
 
 #### General Documentation
 
@@ -447,11 +482,11 @@ This project demonstrates:
 | 2 | Storage Layer (Table, Catalog) | ✅ Complete | 58 |
 | 3 | CSV Ingestion | ✅ Complete | 38 |
 | 4 | Query Operators | ✅ Complete | 145 |
-| 5 | SQL Parser | ❌ Not Started | - |
+| 5 | SQL Parser | ✅ Complete | 19 |
 | 6 | Query Planning | ❌ Not Started | - |
 | 7 | REPL Interface | ❌ Not Started | - |
 
-**Total Tests**: 341 (341 passing ✅, including 31 integration tests)
+**Total Tests**: 329 (329 passing ✅, including 31 integration tests)
 
 
 ### Module Status
@@ -462,7 +497,7 @@ This project demonstrates:
 - ✅ `table` - Table structure complete (33 tests)
 - ✅ `catalog` - Metadata management complete (25 tests)
 - ✅ `ingest` - CSV ingestion complete (38 tests)
-- ❌ `parser` - SQL parsing (not started)
+- ✅ `parser` - SQL parsing complete (19 tests)
 - ✅ `execution` - Query execution engine (77 tests)
 - ✅ `aggregates` - Aggregate functions (65 tests)
 - ✅ `lib` - Library exports and integration (3 tests)
