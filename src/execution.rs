@@ -10,6 +10,7 @@ use crate::table::Table;
 use crate::types::{DataType, Value};
 use std::collections::HashMap;
 use std::fmt;
+use std::hash::{Hash, Hasher};
 use std::sync::Arc;
 
 /// Error type for execution operations
@@ -82,6 +83,12 @@ impl std::error::Error for ExecutionError {}
 impl From<std::io::Error> for ExecutionError {
     fn from(err: std::io::Error) -> Self {
         ExecutionError::IoError(err)
+    }
+}
+
+impl From<crate::error::DatabaseError> for ExecutionError {
+    fn from(err: crate::error::DatabaseError) -> Self {
+        ExecutionError::Custom(err.to_string())
     }
 }
 
@@ -1246,11 +1253,428 @@ impl Operator for Project {
     }
 }
 
+// ============================================================================
+// GROUP BY OPERATOR
+// ============================================================================
+
+/// A key for grouping rows in a GroupBy operation.
+///
+/// The key is a vector of values representing the group by columns.
+/// It implements Hash and Eq for use as a HashMap key.
+#[derive(Debug, Clone)]
+struct GroupKey(Vec<Option<Value>>);
+
+impl PartialEq for GroupKey {
+    fn eq(&self, other: &Self) -> bool {
+        if self.0.len() != other.0.len() {
+            return false;
+        }
+        for (a, b) in self.0.iter().zip(other.0.iter()) {
+            match (a, b) {
+                (None, None) => continue,
+                (None, Some(_)) | (Some(_), None) => return false,
+                (Some(va), Some(vb)) => {
+                    // Compare using string representation
+                    if va.to_string() != vb.to_string() {
+                        return false;
+                    }
+                }
+            }
+        }
+        true
+    }
+}
+
+impl Eq for GroupKey {}
+
+impl Hash for GroupKey {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        for value in &self.0 {
+            match value {
+                None => 0.hash(state),
+                Some(v) => {
+                    // Hash based on value type and value
+                    match v {
+                        Value::Int64(i) => (1, i).hash(state),
+                        Value::Float64(f) => (2, f.to_bits()).hash(state),
+                        Value::String(s) => (3, s).hash(state),
+                    }
+                }
+            }
+        }
+    }
+}
+
+/// GroupBy operator for grouping rows and computing aggregates.
+///
+/// GroupBy reads all rows from a child operator, groups them by specified
+/// columns, and computes aggregates for each group. The output contains
+/// one row per group with the group by keys followed by the aggregate results.
+///
+/// # Example
+///
+/// ```ignore
+/// use mini_rust_olap::execution::{Operator, TableScan, GroupBy};
+/// use mini_rust_olap::aggregates::CountAggregate;
+/// use mini_rust_olap::types::DataType;
+///
+/// let scan = Box::new(TableScan::new(table).unwrap());
+/// let group_by = Box::new(GroupBy::new(
+///     scan,
+///     vec![0],  // Group by first column
+///     vec![1],  // Aggregate second column
+///     vec![Box::new(CountAggregate::new(DataType::Int64))]
+/// ));
+/// ```
+pub struct GroupBy {
+    /// The child operator to read data from
+    child: Box<dyn Operator>,
+
+    /// Indices of columns to group by
+    group_by_columns: Vec<usize>,
+
+    /// Indices of columns to aggregate
+    aggregate_columns: Vec<usize>,
+
+    /// Aggregates to compute for each group
+    aggregates: Vec<Box<dyn crate::aggregates::AggregateFunction>>,
+
+    /// Operator state
+    state: OperatorState,
+
+    /// Output schema will include group by columns followed by aggregates
+    output_schema: Option<HashMap<String, DataType>>,
+
+    /// Column names in output order
+    output_column_names: Option<Vec<String>>,
+
+    /// Cache of grouped data (computed during open())
+    grouped_data: Option<HashMap<GroupKey, Vec<Vec<Option<Value>>>>>,
+
+    /// Whether results have been returned
+    results_returned: bool,
+}
+
+impl GroupBy {
+    /// Create a new GroupBy operator.
+    ///
+    /// # Arguments
+    ///
+    /// * `child` - The child operator to read data from
+    /// * `group_by_columns` - Indices of columns to group by
+    /// * `aggregates` - Vector of aggregate functions to compute for each group
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// use mini_rust_olap::execution::{Operator, TableScan, GroupBy};
+    /// use mini_rust_olap::aggregates::CountAggregate;
+    /// use mini_rust_olap::types::DataType;
+    ///
+    /// let scan = Box::new(TableScan::new(table).unwrap());
+    /// let group_by = Box::new(GroupBy::new(
+    ///     scan,
+    ///     vec![0, 1],  // Group by first two columns
+    ///     vec![2],     // Aggregate third column
+    ///     vec![Box::new(CountAggregate::new(DataType::Int64))]
+    /// ));
+    /// ```
+    pub fn new(
+        child: Box<dyn Operator>,
+        group_by_columns: Vec<usize>,
+        aggregate_columns: Vec<usize>,
+        aggregates: Vec<Box<dyn crate::aggregates::AggregateFunction>>,
+    ) -> Self {
+        GroupBy {
+            child,
+            group_by_columns,
+            aggregate_columns,
+            aggregates,
+            state: OperatorState::NotOpen,
+            output_schema: None,
+            output_column_names: None,
+            grouped_data: None,
+            results_returned: false,
+        }
+    }
+}
+
+impl Operator for GroupBy {
+    fn open(&mut self) -> Result<()> {
+        if self.state == OperatorState::Open {
+            return Err(ExecutionError::OperatorAlreadyOpen);
+        }
+
+        // Open the child operator
+        self.child.open()?;
+
+        // Get child schema and column names
+        let child_schema = self.child.schema()?;
+        let child_column_names = self.child.column_names()?;
+        let child_column_count = child_column_names.len();
+
+        // Validate group by column indices
+        for &index in &self.group_by_columns {
+            if index >= child_column_count {
+                return Err(ExecutionError::InvalidColumnIndex {
+                    index,
+                    count: child_column_count,
+                });
+            }
+        }
+
+        // Validate aggregate column indices
+        for &index in &self.aggregate_columns {
+            if index >= child_column_count {
+                return Err(ExecutionError::InvalidColumnIndex {
+                    index,
+                    count: child_column_count,
+                });
+            }
+        }
+
+        // Validate that aggregate_columns length matches aggregates length
+        if self.aggregate_columns.len() != self.aggregates.len() {
+            return Err(ExecutionError::Custom(format!(
+                "aggregate_columns length ({}) must match aggregates length ({})",
+                self.aggregate_columns.len(),
+                self.aggregates.len()
+            )));
+        }
+
+        // Build output schema and column names
+        let mut output_schema = HashMap::new();
+        let mut output_column_names = Vec::new();
+
+        // Add group by columns to output
+        for &index in &self.group_by_columns {
+            let name = child_column_names[index].clone();
+            let data_type = child_schema[&name];
+            output_schema.insert(name.clone(), data_type);
+            output_column_names.push(name);
+        }
+
+        // Add aggregates to output
+        for (i, agg) in self.aggregates.iter().enumerate() {
+            let name = format!("agg_{}", i);
+            let data_type = agg.data_type();
+            output_schema.insert(name.clone(), data_type);
+            output_column_names.push(name);
+        }
+
+        self.output_schema = Some(output_schema);
+        self.output_column_names = Some(output_column_names);
+
+        // Read all data and group it
+        let mut grouped_data: HashMap<GroupKey, Vec<Vec<Option<Value>>>> = HashMap::new();
+
+        while let Some(batch) = self.child.next_batch()? {
+            let row_count = batch.row_count();
+            let col_count = batch.column_count();
+
+            for row_index in 0..row_count {
+                // Build group key
+                let mut key_values = Vec::new();
+                for &col_index in &self.group_by_columns {
+                    let value = batch.get(row_index, col_index)?;
+                    key_values.push(Some(value));
+                }
+                let key = GroupKey(key_values);
+
+                // Get all values for this row
+                let mut row_values = Vec::new();
+                for col_index in 0..col_count {
+                    let value = batch.get(row_index, col_index)?;
+                    row_values.push(Some(value));
+                }
+
+                // Add row to its group
+                grouped_data.entry(key).or_default().push(row_values);
+            }
+        }
+
+        self.grouped_data = Some(grouped_data);
+        self.state = OperatorState::Open;
+        Ok(())
+    }
+
+    fn next_batch(&mut self) -> Result<Option<Batch>> {
+        if self.state != OperatorState::Open {
+            return Err(ExecutionError::OperatorNotOpen);
+        }
+
+        if self.results_returned {
+            return Ok(None);
+        }
+
+        self.results_returned = true;
+
+        let grouped_data = self.grouped_data.as_ref().unwrap();
+
+        // If no data, return empty batch
+        if grouped_data.is_empty() {
+            return Ok(None);
+        }
+
+        // Prepare output columns
+        let group_by_col_count = self.group_by_columns.len();
+        let agg_col_count = self.aggregates.len();
+        let mut output_columns: Vec<Vec<Option<Value>>> =
+            vec![Vec::new(); group_by_col_count + agg_col_count];
+
+        // Process each group
+        for (key, rows) in grouped_data {
+            // Add group by values
+            for (col_index, value) in key.0.iter().enumerate() {
+                output_columns[col_index].push(value.clone());
+            }
+
+            // Compute aggregates
+            for (agg_index, agg) in self.aggregates.iter_mut().enumerate() {
+                agg.reset();
+                let agg_col_index = self.aggregate_columns[agg_index];
+
+                // Add all rows in this group to the aggregate
+                for row in rows {
+                    if let Some(value) = &row[agg_col_index] {
+                        agg.update(Some(value.clone()))?;
+                    }
+                }
+
+                let result = agg.result();
+                let output_index = group_by_col_count + agg_index;
+                output_columns[output_index].push(result);
+            }
+        }
+
+        // Convert output columns to actual column types
+        let mut final_columns = Vec::new();
+        let child_schema = self.child.schema()?;
+        let child_column_names = self.child.column_names()?;
+
+        // Group by columns
+        for (i, &col_index) in self.group_by_columns.iter().enumerate() {
+            let col_name = &child_column_names[col_index];
+            let data_type = &child_schema[col_name];
+            let values = &output_columns[i];
+
+            let column: Arc<dyn Column> = match data_type {
+                DataType::Int64 => {
+                    let mut int_col = crate::column::IntColumn::new();
+                    for value in values {
+                        if let Some(Value::Int64(v)) = value {
+                            int_col.push_value(Value::Int64(*v))?;
+                        } else {
+                            int_col.push_value(Value::Int64(0))?;
+                        }
+                    }
+                    Arc::new(int_col)
+                }
+                DataType::Float64 => {
+                    let mut float_col = crate::column::FloatColumn::new();
+                    for value in values {
+                        if let Some(Value::Float64(v)) = value {
+                            float_col.push_value(Value::Float64(*v))?;
+                        } else {
+                            float_col.push_value(Value::Float64(0.0))?;
+                        }
+                    }
+                    Arc::new(float_col)
+                }
+                DataType::String => {
+                    let mut string_col = crate::column::StringColumn::new();
+                    for value in values {
+                        if let Some(Value::String(v)) = value {
+                            string_col.push_value(Value::String(v.clone()))?;
+                        } else {
+                            string_col.push_value(Value::String(String::new()))?;
+                        }
+                    }
+                    Arc::new(string_col)
+                }
+            };
+            final_columns.push(column);
+        }
+
+        // Aggregate columns
+        for (i, agg) in self.aggregates.iter().enumerate() {
+            let data_type = agg.data_type();
+            let values = &output_columns[group_by_col_count + i];
+
+            let column: Arc<dyn Column> = match data_type {
+                DataType::Int64 => {
+                    let mut int_col = crate::column::IntColumn::new();
+                    for value in values {
+                        if let Some(Value::Int64(v)) = value {
+                            int_col.push_value(Value::Int64(*v))?;
+                        } else {
+                            int_col.push_value(Value::Int64(0))?;
+                        }
+                    }
+                    Arc::new(int_col)
+                }
+                DataType::Float64 => {
+                    let mut float_col = crate::column::FloatColumn::new();
+                    for value in values {
+                        if let Some(Value::Float64(v)) = value {
+                            float_col.push_value(Value::Float64(*v))?;
+                        } else {
+                            float_col.push_value(Value::Float64(0.0))?;
+                        }
+                    }
+                    Arc::new(float_col)
+                }
+                DataType::String => {
+                    let mut string_col = crate::column::StringColumn::new();
+                    for value in values {
+                        if let Some(Value::String(v)) = value {
+                            string_col.push_value(Value::String(v.clone()))?;
+                        } else {
+                            string_col.push_value(Value::String(String::new()))?;
+                        }
+                    }
+                    Arc::new(string_col)
+                }
+            };
+            final_columns.push(column);
+        }
+
+        Ok(Some(Batch::new(final_columns)))
+    }
+
+    fn close(&mut self) -> Result<()> {
+        self.state = OperatorState::Closed;
+        self.child.close()?;
+        self.grouped_data = None;
+        self.results_returned = false;
+        Ok(())
+    }
+
+    fn schema(&self) -> Result<HashMap<String, DataType>> {
+        self.output_schema
+            .clone()
+            .ok_or(ExecutionError::SchemaNotFound)
+    }
+
+    fn column_names(&self) -> Result<Vec<String>> {
+        self.output_column_names
+            .clone()
+            .ok_or(ExecutionError::Custom(
+                "Column names not initialized".to_string(),
+            ))
+    }
+
+    fn is_open(&self) -> bool {
+        self.state == OperatorState::Open
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::aggregates::*;
     use crate::column::{FloatColumn, IntColumn, StringColumn};
-    use crate::types::Value;
+    use crate::types::{DataType, Value};
 
     #[test]
     fn test_batch_creation() {
@@ -2559,6 +2983,597 @@ mod tests {
         assert!(matches!(result, Err(ExecutionError::OperatorAlreadyOpen)));
 
         project.close().unwrap();
+    }
+
+    // ============================================================================
+    // GROUP BY TESTS
+    // ============================================================================
+
+    #[test]
+    fn test_group_by_basic() {
+        let table = create_test_table();
+        let scan = Box::new(TableScan::new(table));
+
+        // Group by name (column 1), count occurrences (column 0)
+        let mut group_by = Box::new(GroupBy::new(
+            scan,
+            vec![1], // Group by name
+            vec![0], // Aggregate id column
+            vec![Box::new(CountAggregate::new(DataType::Int64))],
+        ));
+
+        group_by.open().unwrap();
+
+        let batch = group_by.next_batch().unwrap().unwrap();
+        assert_eq!(batch.row_count(), 5); // 5 unique names
+        assert_eq!(batch.column_count(), 2); // name + count
+
+        // Verify schema
+        let schema = group_by.schema().unwrap();
+        assert_eq!(schema.len(), 2);
+        assert_eq!(schema.get("name"), Some(&DataType::String));
+        assert_eq!(schema.get("agg_0"), Some(&DataType::Int64));
+
+        // Verify column names
+        let column_names = group_by.column_names().unwrap();
+        assert_eq!(column_names, vec!["name".to_string(), "agg_0".to_string()]);
+
+        // Verify data - each name should have count 1
+        for i in 0..batch.row_count() {
+            let _name = batch.get(i, 0).unwrap();
+            let count = batch.get(i, 1).unwrap();
+            assert_eq!(count, Value::Int64(1));
+        }
+
+        // No more batches
+        assert!(group_by.next_batch().unwrap().is_none());
+
+        group_by.close().unwrap();
+    }
+
+    #[test]
+    fn test_group_by_multiple_groups() {
+        let mut table = Table::new("test".to_string());
+
+        // Add category column
+        let mut cat_col = StringColumn::new();
+        for _ in 0..9 {
+            cat_col.push_value(Value::String("A".to_string())).unwrap();
+        }
+        table
+            .add_column("category".to_string(), Box::new(cat_col))
+            .unwrap();
+
+        // Add value column
+        let mut val_col = IntColumn::new();
+        for i in 0..9 {
+            val_col.push_value(Value::Int64(i)).unwrap();
+        }
+        table
+            .add_column("value".to_string(), Box::new(val_col))
+            .unwrap();
+
+        let scan = Box::new(TableScan::new(table));
+
+        // Group by category, sum value
+        let mut group_by = Box::new(GroupBy::new(
+            scan,
+            vec![0], // Group by category
+            vec![1], // Aggregate value
+            vec![Box::new(SumAggregate::new(DataType::Int64).unwrap())],
+        ));
+
+        group_by.open().unwrap();
+
+        let batch = group_by.next_batch().unwrap().unwrap();
+        assert_eq!(batch.row_count(), 1); // Only 1 group (all "A")
+        assert_eq!(batch.get(0, 0).unwrap(), Value::String("A".to_string()));
+        assert_eq!(batch.get(0, 1).unwrap(), Value::Int64(36)); // Sum of 0-8
+
+        group_by.close().unwrap();
+    }
+
+    #[test]
+    fn test_group_by_count_aggregate() {
+        let table = create_test_table();
+        let scan = Box::new(TableScan::new(table));
+
+        let mut group_by = Box::new(GroupBy::new(
+            scan,
+            vec![2], // Group by age
+            vec![0], // Count id
+            vec![Box::new(CountAggregate::new(DataType::Int64))],
+        ));
+
+        group_by.open().unwrap();
+
+        let batch = group_by.next_batch().unwrap().unwrap();
+        assert_eq!(batch.row_count(), 5); // 5 unique ages
+        assert_eq!(batch.column_count(), 2);
+
+        // Each age appears once
+        for i in 0..batch.row_count() {
+            let count = batch.get(i, 1).unwrap();
+            assert_eq!(count, Value::Int64(1));
+        }
+
+        group_by.close().unwrap();
+    }
+
+    #[test]
+    fn test_group_by_sum_aggregate() {
+        let mut table = Table::new("test".to_string());
+
+        // Add group column
+        let mut group_col = IntColumn::new();
+        for _ in 0..6 {
+            group_col.push_value(Value::Int64(1)).unwrap();
+        }
+        for _ in 0..4 {
+            group_col.push_value(Value::Int64(2)).unwrap();
+        }
+        table
+            .add_column("group".to_string(), Box::new(group_col))
+            .unwrap();
+
+        // Add value column
+        let mut val_col = IntColumn::new();
+        for i in 1..=6 {
+            val_col.push_value(Value::Int64(i)).unwrap();
+        }
+        for i in 1..=4 {
+            val_col.push_value(Value::Int64(i)).unwrap();
+        }
+        table
+            .add_column("value".to_string(), Box::new(val_col))
+            .unwrap();
+
+        let scan = Box::new(TableScan::new(table));
+
+        let mut group_by = Box::new(GroupBy::new(
+            scan,
+            vec![0], // Group by group
+            vec![1], // Sum value
+            vec![Box::new(SumAggregate::new(DataType::Int64).unwrap())],
+        ));
+
+        group_by.open().unwrap();
+
+        let batch = group_by.next_batch().unwrap().unwrap();
+        assert_eq!(batch.row_count(), 2); // 2 groups
+
+        // Find each group and verify sum
+        let mut group1_found = false;
+        let mut group2_found = false;
+        for i in 0..batch.row_count() {
+            let group = batch.get(i, 0).unwrap();
+            let sum = batch.get(i, 1).unwrap();
+            if group == Value::Int64(1) {
+                assert_eq!(sum, Value::Int64(21)); // Sum of 1-6
+                group1_found = true;
+            } else if group == Value::Int64(2) {
+                assert_eq!(sum, Value::Int64(10)); // Sum of 1-4
+                group2_found = true;
+            }
+        }
+        assert!(group1_found && group2_found);
+
+        group_by.close().unwrap();
+    }
+
+    #[test]
+    fn test_group_by_min_max_aggregates() {
+        let mut table = Table::new("test".to_string());
+
+        // Add group column
+        let mut group_col = IntColumn::new();
+        for _ in 0..5 {
+            group_col.push_value(Value::Int64(1)).unwrap();
+        }
+        for _ in 0..3 {
+            group_col.push_value(Value::Int64(2)).unwrap();
+        }
+        table
+            .add_column("group".to_string(), Box::new(group_col))
+            .unwrap();
+
+        // Add value column
+        let mut val_col = IntColumn::new();
+        for i in 5..10 {
+            val_col.push_value(Value::Int64(i)).unwrap();
+        }
+        for i in 1..4 {
+            val_col.push_value(Value::Int64(i)).unwrap();
+        }
+        table
+            .add_column("value".to_string(), Box::new(val_col))
+            .unwrap();
+
+        let scan = Box::new(TableScan::new(table));
+
+        let mut group_by = Box::new(GroupBy::new(
+            scan,
+            vec![0],    // Group by group
+            vec![1, 1], // Min and max value
+            vec![
+                Box::new(MinAggregate::new(DataType::Int64)),
+                Box::new(MaxAggregate::new(DataType::Int64)),
+            ],
+        ));
+
+        group_by.open().unwrap();
+
+        let batch = group_by.next_batch().unwrap().unwrap();
+        assert_eq!(batch.row_count(), 2);
+        assert_eq!(batch.column_count(), 3); // group + min + max
+
+        // Check group 1
+        for i in 0..batch.row_count() {
+            let group = batch.get(i, 0).unwrap();
+            let min = batch.get(i, 1).unwrap();
+            let max = batch.get(i, 2).unwrap();
+            if group == Value::Int64(1) {
+                assert_eq!(min, Value::Int64(5));
+                assert_eq!(max, Value::Int64(9));
+            } else if group == Value::Int64(2) {
+                assert_eq!(min, Value::Int64(1));
+                assert_eq!(max, Value::Int64(3));
+            }
+        }
+
+        group_by.close().unwrap();
+    }
+
+    #[test]
+    fn test_group_by_avg_aggregate() {
+        let mut table = Table::new("test".to_string());
+
+        // Add group column
+        let mut group_col = IntColumn::new();
+        for _ in 0..3 {
+            group_col.push_value(Value::Int64(1)).unwrap();
+        }
+        for _ in 0..3 {
+            group_col.push_value(Value::Int64(2)).unwrap();
+        }
+        table
+            .add_column("group".to_string(), Box::new(group_col))
+            .unwrap();
+
+        // Add value column
+        let mut val_col = FloatColumn::new();
+        val_col.push_value(Value::Float64(10.0)).unwrap();
+        val_col.push_value(Value::Float64(20.0)).unwrap();
+        val_col.push_value(Value::Float64(30.0)).unwrap();
+        val_col.push_value(Value::Float64(40.0)).unwrap();
+        val_col.push_value(Value::Float64(50.0)).unwrap();
+        val_col.push_value(Value::Float64(60.0)).unwrap();
+        table
+            .add_column("value".to_string(), Box::new(val_col))
+            .unwrap();
+
+        let scan = Box::new(TableScan::new(table));
+
+        let mut group_by = Box::new(GroupBy::new(
+            scan,
+            vec![0], // Group by group
+            vec![1], // Average value
+            vec![Box::new(AvgAggregate::new(DataType::Float64).unwrap())],
+        ));
+
+        group_by.open().unwrap();
+
+        let batch = group_by.next_batch().unwrap().unwrap();
+        assert_eq!(batch.row_count(), 2);
+
+        // Check averages: (10+20+30)/3=20, (40+50+60)/3=50
+        for i in 0..batch.row_count() {
+            let group = batch.get(i, 0).unwrap();
+            let avg = batch.get(i, 1).unwrap();
+            if group == Value::Int64(1) {
+                assert_eq!(avg, Value::Float64(20.0));
+            } else if group == Value::Int64(2) {
+                assert_eq!(avg, Value::Float64(50.0));
+            }
+        }
+
+        group_by.close().unwrap();
+    }
+
+    #[test]
+    fn test_group_by_multiple_group_by_columns() {
+        let mut table = Table::new("test".to_string());
+
+        // Add column1
+        let mut col1 = IntColumn::new();
+        for _ in 0..4 {
+            col1.push_value(Value::Int64(1)).unwrap();
+        }
+        for _ in 0..4 {
+            col1.push_value(Value::Int64(2)).unwrap();
+        }
+        table
+            .add_column("col1".to_string(), Box::new(col1))
+            .unwrap();
+
+        // Add column2
+        let mut col2 = IntColumn::new();
+        for i in 0..8 {
+            col2.push_value(Value::Int64(i % 2)).unwrap();
+        }
+        table
+            .add_column("col2".to_string(), Box::new(col2))
+            .unwrap();
+
+        // Add value column
+        let mut val_col = IntColumn::new();
+        for i in 1..=8 {
+            val_col.push_value(Value::Int64(i)).unwrap();
+        }
+        table
+            .add_column("value".to_string(), Box::new(val_col))
+            .unwrap();
+
+        let scan = Box::new(TableScan::new(table));
+
+        let mut group_by = Box::new(GroupBy::new(
+            scan,
+            vec![0, 1], // Group by col1 and col2
+            vec![2],    // Sum value
+            vec![Box::new(SumAggregate::new(DataType::Int64).unwrap())],
+        ));
+
+        group_by.open().unwrap();
+
+        let batch = group_by.next_batch().unwrap().unwrap();
+        assert_eq!(batch.row_count(), 4); // (1,0), (1,1), (2,0), (2,1)
+        assert_eq!(batch.column_count(), 3);
+
+        // Verify column names
+        let column_names = group_by.column_names().unwrap();
+        assert_eq!(column_names, vec!["col1", "col2", "agg_0"]);
+
+        group_by.close().unwrap();
+    }
+
+    #[test]
+    fn test_group_by_empty_input() {
+        let mut table = Table::new("empty".to_string());
+
+        // Add column but no rows
+        let col = IntColumn::new();
+        table
+            .add_column("value".to_string(), Box::new(col))
+            .unwrap();
+
+        let scan = Box::new(TableScan::new(table));
+
+        let mut group_by = Box::new(GroupBy::new(
+            scan,
+            vec![0],
+            vec![0],
+            vec![Box::new(CountAggregate::new(DataType::Int64))],
+        ));
+
+        group_by.open().unwrap();
+
+        // Should return None for empty input
+        assert!(group_by.next_batch().unwrap().is_none());
+
+        group_by.close().unwrap();
+    }
+
+    #[test]
+    fn test_group_by_single_group() {
+        let mut table = Table::new("test".to_string());
+
+        // Add group column (all same value)
+        let mut group_col = IntColumn::new();
+        for _ in 0..5 {
+            group_col.push_value(Value::Int64(1)).unwrap();
+        }
+        table
+            .add_column("group".to_string(), Box::new(group_col))
+            .unwrap();
+
+        // Add value column
+        let mut val_col = IntColumn::new();
+        for i in 1..=5 {
+            val_col.push_value(Value::Int64(i)).unwrap();
+        }
+        table
+            .add_column("value".to_string(), Box::new(val_col))
+            .unwrap();
+
+        let scan = Box::new(TableScan::new(table));
+
+        let mut group_by = Box::new(GroupBy::new(
+            scan,
+            vec![0], // Group by group
+            vec![1], // Sum value
+            vec![Box::new(SumAggregate::new(DataType::Int64).unwrap())],
+        ));
+
+        group_by.open().unwrap();
+
+        let batch = group_by.next_batch().unwrap().unwrap();
+        assert_eq!(batch.row_count(), 1); // Single group
+        assert_eq!(batch.get(0, 1).unwrap(), Value::Int64(15)); // Sum of 1-5
+
+        group_by.close().unwrap();
+    }
+
+    #[test]
+    fn test_group_by_invalid_group_by_column_index() {
+        let table = create_test_table();
+        let scan = Box::new(TableScan::new(table));
+
+        let mut group_by = Box::new(GroupBy::new(
+            scan,
+            vec![10], // Invalid column index
+            vec![0],
+            vec![Box::new(CountAggregate::new(DataType::Int64))],
+        ));
+
+        let result = group_by.open();
+        assert!(result.is_err());
+        assert!(matches!(
+            result,
+            Err(ExecutionError::InvalidColumnIndex { .. })
+        ));
+    }
+
+    #[test]
+    fn test_group_by_invalid_aggregate_column_index() {
+        let table = create_test_table();
+        let scan = Box::new(TableScan::new(table));
+
+        let mut group_by = Box::new(GroupBy::new(
+            scan,
+            vec![0],
+            vec![10], // Invalid column index
+            vec![Box::new(CountAggregate::new(DataType::Int64))],
+        ));
+
+        let result = group_by.open();
+        assert!(result.is_err());
+        assert!(matches!(
+            result,
+            Err(ExecutionError::InvalidColumnIndex { .. })
+        ));
+    }
+
+    #[test]
+    fn test_group_by_mismatched_lengths() {
+        let table = create_test_table();
+        let scan = Box::new(TableScan::new(table));
+
+        // aggregate_columns has 2 elements, but aggregates has 1
+        let mut group_by = Box::new(GroupBy::new(
+            scan,
+            vec![0],
+            vec![0, 1],                                           // 2 column indices
+            vec![Box::new(CountAggregate::new(DataType::Int64))], // 1 aggregate
+        ));
+
+        let result = group_by.open();
+        assert!(result.is_err());
+        assert!(matches!(result, Err(ExecutionError::Custom(_))));
+    }
+
+    #[test]
+    fn test_group_by_lifecycle() {
+        let table = create_test_table();
+        let scan = Box::new(TableScan::new(table));
+
+        let mut group_by = Box::new(GroupBy::new(
+            scan,
+            vec![0],
+            vec![1],
+            vec![Box::new(CountAggregate::new(DataType::Int64))],
+        ));
+
+        assert!(!group_by.is_open());
+
+        group_by.open().unwrap();
+        assert!(group_by.is_open());
+
+        // Can't open twice
+        let result = group_by.open();
+        assert!(result.is_err());
+        assert!(matches!(result, Err(ExecutionError::OperatorAlreadyOpen)));
+
+        group_by.close().unwrap();
+        assert!(!group_by.is_open());
+    }
+
+    #[test]
+    fn test_group_by_next_batch_not_open() {
+        let table = create_test_table();
+        let scan = Box::new(TableScan::new(table));
+
+        let mut group_by = Box::new(GroupBy::new(
+            scan,
+            vec![0],
+            vec![1],
+            vec![Box::new(CountAggregate::new(DataType::Int64))],
+        ));
+
+        let result = group_by.next_batch();
+        assert!(result.is_err());
+        assert!(matches!(result, Err(ExecutionError::OperatorNotOpen)));
+    }
+
+    #[test]
+    fn test_group_by_schema() {
+        let table = create_test_table();
+        let scan = Box::new(TableScan::new(table));
+
+        let mut group_by = Box::new(GroupBy::new(
+            scan,
+            vec![1, 2], // Group by name and age
+            vec![0],    // Count id
+            vec![Box::new(CountAggregate::new(DataType::Int64))],
+        ));
+
+        group_by.open().unwrap();
+
+        let schema = group_by.schema().unwrap();
+        assert_eq!(schema.len(), 3);
+        assert_eq!(schema.get("name"), Some(&DataType::String));
+        assert_eq!(schema.get("age"), Some(&DataType::Float64));
+        assert_eq!(schema.get("agg_0"), Some(&DataType::Int64));
+
+        group_by.close().unwrap();
+    }
+
+    #[test]
+    fn test_group_by_multiple_aggregates_same_column() {
+        let mut table = Table::new("test".to_string());
+
+        // Add group column
+        let mut group_col = IntColumn::new();
+        for _ in 0..5 {
+            group_col.push_value(Value::Int64(1)).unwrap();
+        }
+        table
+            .add_column("group".to_string(), Box::new(group_col))
+            .unwrap();
+
+        // Add value column
+        let mut val_col = IntColumn::new();
+        for i in 1..=5 {
+            val_col.push_value(Value::Int64(i)).unwrap();
+        }
+        table
+            .add_column("value".to_string(), Box::new(val_col))
+            .unwrap();
+
+        let scan = Box::new(TableScan::new(table));
+
+        let mut group_by = Box::new(GroupBy::new(
+            scan,
+            vec![0],       // Group by group
+            vec![1, 1, 1], // Sum, min, max same column
+            vec![
+                Box::new(SumAggregate::new(DataType::Int64).unwrap()),
+                Box::new(MinAggregate::new(DataType::Int64)),
+                Box::new(MaxAggregate::new(DataType::Int64)),
+            ],
+        ));
+
+        group_by.open().unwrap();
+
+        let batch = group_by.next_batch().unwrap().unwrap();
+        assert_eq!(batch.row_count(), 1);
+        assert_eq!(batch.column_count(), 4); // group + sum + min + max
+
+        // Sum=15, Min=1, Max=5
+        assert_eq!(batch.get(0, 1).unwrap(), Value::Int64(15));
+        assert_eq!(batch.get(0, 2).unwrap(), Value::Int64(1));
+        assert_eq!(batch.get(0, 3).unwrap(), Value::Int64(5));
+
+        group_by.close().unwrap();
     }
 
     // ============================================================================
