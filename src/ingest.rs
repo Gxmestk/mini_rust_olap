@@ -555,8 +555,8 @@ mod tests {
 
     #[test]
     fn test_parse_value_float() {
-        let value = parse_value("3.14", DataType::Float64).unwrap();
-        assert_eq!(value, Value::Float64(3.14));
+        let value = parse_value("12.34", DataType::Float64).unwrap();
+        assert_eq!(value, Value::Float64(12.34));
     }
 
     #[test]
@@ -603,8 +603,8 @@ mod tests {
 
     #[test]
     fn test_parse_value_negative_float() {
-        let value = parse_value("-3.14", DataType::Float64).unwrap();
-        assert_eq!(value, Value::Float64(-3.14));
+        let value = parse_value("-56.78", DataType::Float64).unwrap();
+        assert_eq!(value, Value::Float64(-56.78));
     }
 
     // ------------------------------------------------------------------------
