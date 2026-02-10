@@ -13,11 +13,10 @@
 //! - [`mod@column`] - Columnar storage implementation
 //! - [`table`] - Table structure holding columns
 //! - [`catalog`] - Metadata management for tables
-//! - \[`ingest`] - CSV data ingestion *(TODO)*
-//! - \[`parser`] - SQL query parsing *(TODO)*
-//! - \[`execution`] - Query execution engine *(TODO)*
-//! - \[`operators`] - Physical query operators *(TODO)*
-//! - \[`aggregates`] - Aggregate functions *(TODO)*
+//! - [`ingest`] - CSV data ingestion
+//! - parser - SQL query parsing *(TODO)*
+//! - [`execution`] - Query execution engine
+//! - [`aggregates`] - Aggregate functions
 //!
 //! ## Key Features
 //!
@@ -76,9 +75,8 @@ pub mod ingest;
 pub mod table;
 pub mod types;
 // pub mod parser;
-// pub mod execution;
-// pub mod operators;
-// pub mod aggregates;
+pub mod aggregates;
+pub mod execution;
 
 // ============================================================================
 // VERSION INFORMATION
