@@ -4,8 +4,8 @@
 
 [![Rust](https://img.shields.io/badge/rust-1.70%2B-orange.svg)](https://www.rust-lang.org/)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
-[![Tests](https://img.shields.io/badge/tests-341%20passing-green.svg)]()
-[![Phase](https://img.shields.io/badge/phase-4%20complete-success.svg)]()
+[![Tests](https://img.shields.io/badge/tests-360%20passing-green.svg)]()
+[![Phase](https://img.shields.io/badge/phase-5%20complete-success.svg)]()
 
 **A lightweight, in-memory OLAP database engine built with Rust for educational purposes**
 
@@ -306,8 +306,8 @@ cargo tarpaulin --out Html
 
 ### Current Test Status
 
-- **Total Tests**: 329 passing ✅ (298 library tests + 31 integration tests)
-- **Library Tests**: 298 (error: 10, types: 26, column: 33, table: 33, catalog: 25, ingest: 38, execution: 77, aggregates: 65, parser: 19, lib: 3)
+- **Total Tests**: 360 passing ✅ (329 library tests + 31 integration tests)
+- **Library Tests**: 329 (error: 10, types: 26, column: 33, table: 33, catalog: 25, ingest: 38, execution: 77, aggregates: 65, parser: 19, lib: 3)
 - **Integration Tests**: 31 (operator chaining: 16, manual query: 15)
 - **Code Coverage**: High test coverage across all implemented phases (Foundation, Storage Layer, CSV Ingestion, Query Operators, SQL Parser)
 
@@ -486,7 +486,7 @@ This project demonstrates:
 | 6 | Query Planning | ❌ Not Started | - |
 | 7 | REPL Interface | ❌ Not Started | - |
 
-**Total Tests**: 329 (329 passing ✅, including 31 integration tests)
+**Total Tests**: 360 (329 library tests + 31 integration tests)
 
 
 ### Module Status
@@ -509,23 +509,32 @@ This project demonstrates:
 ```
 mini_rust_olap/
 ├── src/
-│   ├── main.rs              # Entry point (REPL - future)
-│   ├── lib.rs               # Library exports
+│   ├── main.rs              # Entry point (REPL - future Phase 7)
+│   ├── lib.rs               # Library exports and integration tests
 │   ├── error.rs             # Error types (complete)
 │   ├── types.rs             # Data types (complete)
 │   ├── column.rs            # Column implementations (complete)
 │   ├── table.rs             # Table structure (complete)
 │   ├── catalog.rs           # Metadata management (complete)
-│   ├── ingest.rs            # CSV ingestion
-│   ├── parser.rs            # SQL parser
-│   ├── execution.rs         # Query execution
-│   ├── operators.rs         # Physical operators
-│   └── aggregates.rs        # Aggregate functions
+│   ├── ingest.rs            # CSV ingestion (complete)
+│   ├── parser.rs            # SQL parser (complete)
+│   ├── execution.rs         # Query execution and operators (complete)
+│   └── aggregates.rs        # Aggregate functions (complete)
 ├── tests/
-│   └── manual_query.rs      # Integration tests
+│   ├── manual_query.rs      # Manual query integration tests
+│   └── integration_tests.rs # Operator chain integration tests
+├── docs/
+│   ├── phase{1-5}-learning-guide.md
+│   ├── phase{1-5}-assessment.md
+│   ├── ci-pipeline-setup.md
+│   ├── ci-pipeline-assessment.md
+│   ├── code-review-workflow.md
+│   └── code-review-assessment.md
+├── .githooks/               # Git hooks for CI/CD
 ├── Cargo.toml               # Dependencies
 ├── README.md                # This file ✅
-└── progress.md              # Development tracking
+├── progress.md              # Development tracking
+└── prd.md                   # Project Requirements Document
 ```
 
 ---
@@ -692,6 +701,37 @@ fn main() -> mini_rust_olap::Result<()> {
 }
 ```
 
+### Example 4: SQL Parsing
+
+```rust
+use mini_rust_olap::parser::Parser;
+
+fn main() -> Result<(), Box<dyn std::error::Error>> {
+    // Create a parser instance
+    let sql = "SELECT id, name, age FROM users WHERE age > 25";
+    let mut parser = Parser::new(sql);
+    
+    // Parse the SQL statement
+    let query = parser.parse()?;
+    
+    // Access the parsed query structure
+    if let mini_rust_olap::parser::Query::Select(stmt) = query {
+        println!("Selected columns: {:?}", stmt.select_items);
+        println!("From table: {}", stmt.from_table);
+        
+        if let Some(where_expr) = stmt.where_clause {
+            println!("Where clause: {:?}", where_expr);
+        }
+        
+        if let Some(group_by) = stmt.group_by {
+            println!("Group by: {:?}", group_by);
+        }
+    }
+    
+    Ok(())
+}
+```
+
 ---
 
 ## 🤝 Contributing
@@ -763,9 +803,9 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 
 ## 📊 Project Statistics
 
-- **Lines of Code**: 9,723 (comprehensive implementation)
-- **Test Count**: 341 passing tests (high test coverage)
-- **Number of Modules**: 8 implemented (error, catalog, column, ingest, table, types, aggregates, execution), with additional modules planned for future phases
+- **Lines of Code**: 11,200 (comprehensive implementation)
+- **Test Count**: 360 passing tests (high test coverage)
+- **Number of Modules**: 10 implemented (error, types, column, table, catalog, ingest, parser, execution, aggregates, lib)
 - **Dependencies**: 8 (minimal for learning purposes)
 - **Build Time**: ~3 seconds (optimized for fast iteration)
 
