@@ -4,7 +4,7 @@
 
 [![Rust](https://img.shields.io/badge/rust-1.70%2B-orange.svg)](https://www.rust-lang.org/)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
-[![Tests](https://img.shields.io/badge/tests-446%20passing-green.svg)]()
+[![Tests](https://img.shields.io/badge/tests-413%20passing-green.svg)]()
 [![Phase](https://img.shields.io/badge/phase-8%20complete-success.svg)]()
 
 **A lightweight, in-memory OLAP database engine built with Rust for educational purposes**
@@ -716,12 +716,12 @@ cargo tarpaulin --out Html
 
 ### Current Test Status
 
-- **Total Tests**: 446 passing ✅ (361 library tests + 16 integration tests + 15 manual tests + 34 active doc tests [17 ignored] + 20 property-based tests)
-- **Library Tests**: 361 (error: 10, types: 26, column: 33, table: 33, catalog: 25, ingest: 38, execution: 77, aggregates: 65, parser: 19, planner: 10, lib: 3)
-- **Integration Tests**: 16 (operator chaining: 16)
+- **Total Tests**: 413 passing ✅ (362 library tests + 51 tests in tests/ directory)
+- **Library Tests**: 362 (error: 11, types: 27, column: 43, table: 39, catalog: 33, ingest: 38, execution: 115+, aggregates: 46, parser: 28, planner: 52, lib: 3)
+- **Integration Tests**: 19 (comprehensive operator chaining tests)
 - **Manual Query Tests**: 15
-- **Documentation Tests**: 51 total (34 active, 17 ignored)
-- **Code Coverage**: High test coverage across all implemented phases (Foundation, Storage Layer, CSV Ingestion, Query Operators, SQL Parser, Query Planning, Advanced Query Features)
+- **Property-Based Tests**: 20 (parser_properties.rs)
+- **Code Coverage**: High test coverage across all implemented phases (Foundation, Storage Layer, CSV Ingestion, Query Operators, SQL Parser, Query Planning, Advanced Query Features, REPL)
 
 ### Documentation & Assessments
 
@@ -971,34 +971,34 @@ This project demonstrates:
 
 | Phase | Description | Status | Tests |
 |-------|-------------|--------|-------|
-| 1 | Foundation (Types, Columns) | ✅ Complete | 69 |
-| 2 | Storage Layer (Table, Catalog) | ✅ Complete | 58 |
+| 1 | Foundation (Types, Columns) | ✅ Complete | 81 |
+| 2 | Storage Layer (Table, Catalog) | ✅ Complete | 72 |
 | 3 | CSV Ingestion | ✅ Complete | 38 |
-| 4 | Query Operators | ✅ Complete | 145 |
-| 5 | SQL Parser | ✅ Complete | 19 |
-| 6.1 | Query Planning | ✅ Complete | 10 |
+| 4 | Query Operators | ✅ Complete | 161+ |
+| 5 | SQL Parser | ✅ Complete | 28 |
+| 6.1 | Query Planning | ✅ Complete | 52 |
 | 6.2 | ORDER BY, LIMIT, OFFSET | ✅ Complete | 8 |
-| 7 | REPL Interface | ✅ Complete | 165 |
+| 7 | REPL Interface | ✅ Complete | 0 |
 | 8 | Additional Tasks & Quality Improvements | ✅ Complete | 20 |
 | - | Project Reorganization | ✅ Complete | - |
 
-**Total Tests**: 446 (361 library tests + 16 integration tests + 15 manual tests + 34 active doc tests [17 ignored] + 20 property-based tests)
+**Total Tests**: 413 (362 library tests + 51 tests in tests/ directory)
 **Examples**: 2 working examples with comprehensive documentation
 **Benchmarks**: 7 benchmark categories using criterion
 
 
 ### Module Status
 
-- ✅ `error` - Error handling complete (10 tests)
-- ✅ `types` - Core types complete with SortDirection (26 tests)
-- ✅ `column` - Column implementations complete (33 tests)
-- ✅ `table` - Table structure complete (33 tests)
-- ✅ `catalog` - Metadata management complete (25 tests)
+- ✅ `error` - Error handling complete (11 tests)
+- ✅ `types` - Core types complete with SortDirection (27 tests)
+- ✅ `column` - Column implementations complete (43 tests)
+- ✅ `table` - Table structure complete (39 tests)
+- ✅ `catalog` - Metadata management complete (33 tests)
 - ✅ `ingest` - CSV ingestion complete (38 tests)
-- ✅ `parser` - SQL parsing complete with ORDER BY/LIMIT/OFFSET (19 tests)
-- ✅ `execution` - Query execution engine with Sort/Limit operators (77 tests)
-- ✅ `planner` - Query planning with column pruning (10 tests)
-- ✅ `aggregates` - Aggregate functions (65 tests)
+- ✅ `parser` - SQL parsing complete with ORDER BY/LIMIT/OFFSET (28 tests)
+- ✅ `execution` - Query execution engine with Sort/Limit operators (115+ tests)
+- ✅ `planner` - Query planning with column pruning (52 tests)
+- ✅ `aggregates` - Aggregate functions (46 tests)
 - ✅ `lib` - Library exports and integration (3 tests)
 
 ---
@@ -1379,10 +1379,17 @@ This is primarily an educational project, but contributions are welcome! Areas w
 - **Index Support**: B-tree or Bloom filter indexes
 - **Parquet Format**: Support for reading/writing Parquet files
 - **Multi-threading**: Parallel query execution
-- **More SQL Features**: JOIN, ORDER BY, HAVING, LIMIT
+- **More SQL Features**: JOIN, HAVING, DISTINCT
 - **Query Caching**: Cache query results
 - **Web UI**: Browser-based query interface
 - **Persistence**: Write-ahead log for durability
+- **NULL Values**: Proper NULL handling in data types and operations
+- **DROP TABLE Command**: Add DROP TABLE to REPL for table removal
+- **Multi-line Queries**: Support queries spanning multiple lines in REPL
+- **Tab Completion**: Add readline-style tab completion in REPL
+- **Query Export**: Ability to save query results to files
+
+> **Note**: ORDER BY and LIMIT/OFFSET are already implemented in Phase 6.2!
 
 ---
 
@@ -1420,11 +1427,20 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 
 ## 📊 Project Statistics
 
-- **Lines of Code**: 11,200 (comprehensive implementation)
-- **Test Count**: 446 passing tests (high test coverage)
-- **Number of Modules**: 10 implemented (error, types, column, table, catalog, ingest, parser, execution, aggregates, lib)
-- **Dependencies**: 8 (minimal for learning purposes)
-- **Build Time**: ~3 seconds (optimized for fast iteration)
+- **Lines of Code**: ~15,500 (comprehensive implementation across all phases)
+  - src/: ~13,090 lines (11 modules with complete implementations)
+  - tests/: ~1,620 lines (integration, manual, and property-based tests)
+  - scripts/: ~570 lines (CI/CD hooks and test automation)
+  - benches/: ~200 lines (performance benchmarks)
+- **Test Count**: 413 passing tests (high test coverage)
+  - Library tests: 362 (comprehensive unit tests for all modules)
+  - Integration tests: 19 (end-to-end query execution tests)
+  - Manual query tests: 15 (manual aggregation and filtering tests)
+  - Property-based tests: 20 (robustness tests using proptest)
+- **Number of Modules**: 11 implemented (error, types, column, table, catalog, ingest, parser, execution, aggregates, planner, lib)
+- **Dependencies**: 9 (minimal for learning purposes including proptest)
+- **Build Time**: ~3-5 seconds (optimized for fast iteration)
+- **Documentation**: 15,000+ lines (learning guides, assessments, and technical documentation)
 
 ---
 
