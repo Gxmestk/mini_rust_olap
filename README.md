@@ -4,7 +4,7 @@
 
 [![Rust](https://img.shields.io/badge/rust-1.70%2B-orange.svg)](https://www.rust-lang.org/)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
-[![Tests](https://img.shields.io/badge/tests-499%20passing-green.svg)]()
+[![Tests](https://img.shields.io/badge/tests-446%20passing-green.svg)]()
 [![Phase](https://img.shields.io/badge/phase-8%20complete-success.svg)]()
 
 **A lightweight, in-memory OLAP database engine built with Rust for educational purposes**
@@ -716,11 +716,11 @@ cargo tarpaulin --out Html
 
 ### Current Test Status
 
-- **Total Tests**: 499 passing ✅ (361 library tests + 51 integration tests + 16 manual tests + 51 doc tests + 20 property-based tests)
+- **Total Tests**: 446 passing ✅ (361 library tests + 15 integration tests + 16 manual tests + 34 active doc tests [17 ignored] + 20 property-based tests)
 - **Library Tests**: 361 (error: 10, types: 26, column: 33, table: 33, catalog: 25, ingest: 38, execution: 77, aggregates: 65, parser: 19, planner: 10, lib: 3)
-- **Integration Tests**: 16 (operator chaining: 16)
-- **Manual Query Tests**: 15
-- **Documentation Tests**: 51
+- **Integration Tests**: 15 (operator chaining: 16)
+- **Manual Query Tests**: 16
+- **Documentation Tests**: 51 total (34 active, 17 ignored)
 - **Code Coverage**: High test coverage across all implemented phases (Foundation, Storage Layer, CSV Ingestion, Query Operators, SQL Parser, Query Planning, Advanced Query Features)
 
 ### Documentation & Assessments
@@ -982,7 +982,7 @@ This project demonstrates:
 | 8 | Additional Tasks & Quality Improvements | ✅ Complete | 20 |
 | - | Project Reorganization | ✅ Complete | - |
 
-**Total Tests**: 499 (361 library tests + 51 integration tests + 16 manual tests + 51 doc tests + 20 property-based tests)
+**Total Tests**: 446 (361 library tests + 15 integration tests + 16 manual tests + 34 active doc tests [17 ignored] + 20 property-based tests)
 **Examples**: 2 working examples with comprehensive documentation
 **Benchmarks**: 7 benchmark categories using criterion
 
@@ -1376,7 +1376,7 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 ## 📊 Project Statistics
 
 - **Lines of Code**: 11,200 (comprehensive implementation)
-- **Test Count**: 499 passing tests (high test coverage)
+- **Test Count**: 446 passing tests (high test coverage)
 - **Number of Modules**: 10 implemented (error, types, column, table, catalog, ingest, parser, execution, aggregates, lib)
 - **Dependencies**: 8 (minimal for learning purposes)
 - **Build Time**: ~3 seconds (optimized for fast iteration)

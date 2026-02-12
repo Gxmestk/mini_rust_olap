@@ -457,10 +457,10 @@ cargo bench -- --save-baseline main
 ### Test Count Summary
 
 - **Unit Tests**: 361 passing
-- **Integration Tests**: 51 passing (17 ignored)
+- **Integration Tests**: 15 passing
 - **Manual Query Tests**: 16 passing
-- **Doc Tests**: 51 passing
-- **Total Active Tests**: 479 passing
+- **Doc Tests**: 34 active (51 total, 17 ignored)
+- **Total Active Tests**: 446 passing
 
 ### Test Categories by Module
 
@@ -533,7 +533,7 @@ cargo bench -- --save-baseline main
 
 ## Conclusion
 
-The test strategy for Mini Rust OLAP emphasizes comprehensive coverage across unit, integration, and benchmark testing. With 479 passing tests and a robust CI/CD pipeline, the project maintains high code quality and reliability. Future work will focus on increasing code coverage, adding performance regression testing, and exploring advanced testing techniques like fuzz testing and snapshot testing.
+The test strategy for Mini Rust OLAP emphasizes comprehensive coverage across unit, integration, and benchmark testing. With 446 passing tests and a robust CI/CD pipeline, the project maintains high code quality and reliability. Future work will focus on increasing code coverage, adding performance regression testing, and exploring advanced testing techniques like fuzz testing and snapshot testing.
 
 ### Quick Reference
 

@@ -547,7 +547,7 @@ Phase 8 focused on completing additional tasks identified in the project roadmap
 - Code coverage goals and measurement
 - Testing tools and frameworks
 - Best practices for writing tests
-- Current test status: 479 passing tests
+- Current test status: 446 passing tests
 - Future improvement roadmap
 
 ### 8.3 Performance & Memory Optimization Analysis ✅ Complete
@@ -606,11 +606,11 @@ Phase 8 focused on completing additional tasks identified in the project roadmap
 | Category | Tests | Status |
 |-----------|-------|--------|
 | Unit Tests | 361 | ✅ All passing |
-| Integration Tests | 51 (17 ignored) | ✅ All active passing |
+| Integration Tests | 15 | ✅ All passing |
 | Manual Query Tests | 16 | ✅ All passing |
-| Doc Tests | 51 | ✅ All passing |
+| Doc Tests | 34 active (51 total, 17 ignored) | ✅ All passing |
 | Property-Based Tests | 20 | ✅ All passing |
-| **Total** | **499** | ✅ **All passing** |
+| **Total** | **446** | ✅ **All passing** |
 
 ### 8.8 Files Created/Modified
 **New Files:**
@@ -728,7 +728,7 @@ cargo bench -- --profile-time 10  # For flamegraphs
 | Documentation organization | Mixed | Organized in `docs/` and `docs/references/` |
 | Following Rust conventions | Partial | ✅ Full |
 | Compilation status | Working | ✅ Working |
-| Test status | Passing | ✅ Passing (412 tests) |
+| Test status | Passing | ✅ Passing (446 tests) |
 
 ### Documentation Created
 - **`docs/references/REORGANIZATION_SUMMARY.md`** - Detailed reorganization documentation
