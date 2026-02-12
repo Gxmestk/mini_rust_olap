@@ -1,6 +1,6 @@
 # Mini Rust OLAP - Mini OLAP Database Development Progress
 
-## 📊 Overall Status: **Phase 1 Complete** ✅ | **Phase 2 Complete** ✅ | **Phase 3 Complete** ✅ | **Phase 4 Complete** ✅ | **Phase 5 Complete** ✅
+## 📊 Overall Status: **Phase 1 Complete** ✅ | **Phase 2 Complete** ✅ | **Phase 3 Complete** ✅ | **Phase 4 Complete** ✅ | **Phase 5 Complete** ✅ | **Phase 6.1 Complete** ✅ | **Phase 6.2 Complete** ✅
 
 ---
 
@@ -362,23 +362,66 @@
 
 ---
 
-## 🎯 Phase 6: Query Planning
-**Status:** ❌ Not Started  
-**Estimated:** Week 8
+## 🎯 Phase 6: Query Planning & Advanced Features
+**Status:** ✅ Complete (6.1 & 6.2)
+**Completed:** Phase 6.1 + Phase 6.2
+**Tests:** 18 (10 for 6.1, 8 for 6.2)
 
-### 6.1 Query Planner
-- [ ] Enhance `src/execution.rs`
-- [ ] Implement `QueryPlanner`
-- [ ] Convert AST to physical plan
-- [ ] Optimize operator ordering (simple rules)
+### 6.1 Query Planner ✅ Complete
+- [x] Enhance `src/execution.rs` with query planning support
+- [x] Implement `QueryPlanner` in `src/planner.rs`
+- [x] Convert AST to physical execution plans
+- [x] Optimize operator ordering (TableScan → Filter → GroupBy → Project)
+- [x] Implement column pruning optimization
+- [x] Add query planner tests (10 tests)
+- [x] Validate schema throughout query pipeline
+- [x] Handle error cases (column not found, invalid aggregates)
 
-### 6.2 Plan Execution
-- [ ] Execute physical plans
-- [ ] Handle query execution errors
-- [ ] Collect and format results
-- [ ] Add end-to-end query tests
+**Implementation Details:**
+- Created `src/planner.rs` module with `QueryPlanner` struct
+- Implemented `plan_select()` method for SELECT statements
+- Added column pruning to remove unused columns early
+- Ensured correct operator ordering in execution tree
+- Maintained output schema through query pipeline
+
+### 6.2 Advanced Query Features ✅ Complete
+- [x] Implement ORDER BY clause in parser and execution
+- [x] Implement LIMIT clause in parser and execution
+- [x] Implement OFFSET clause in parser and execution
+- [x] Add Sort operator to execution engine
+- [x] Add Limit operator to execution engine
+- [x] Support single and multi-column ORDER BY
+- [x] Support ASC and DESC sort directions
+- [x] Support combined ORDER BY + LIMIT + OFFSET
+- [x] Add comprehensive tests (8 tests)
+- [x] Add doctests for Sort and Limit operators
+
+**Implementation Details:**
+- **Parser Changes:** Added Order, By, Asc, Desc, Limit, Offset tokens; extended SelectStatement AST
+- **Execution Engine:** Created Sort operator (multi-column sorting, memory-based) and Limit operator (pagination)
+- **Planner Changes:** Updated plan_select() to handle ORDER BY, LIMIT, OFFSET with proper column mapping
+- **Type System:** Added SortDirection enum to types.rs
+- **Features:**
+  - Single column ORDER BY with ASC/DESC
+  - Multi-column ORDER BY with precedence
+  - LIMIT row restriction
+  - OFFSET row skipping
+  - Full pagination support (ORDER BY + LIMIT + OFFSET)
+  - Integration with GROUP BY (with limitations)
+
+**Files Modified:**
+- `src/parser.rs`: +380 lines (ORDER BY, LIMIT, OFFSET parsing)
+- `src/execution.rs`: +534 lines (Sort and Limit operators)
+- `src/planner.rs`: +398 lines (query planning with ORDER BY/LIMIT/OFFSET)
+- `src/types.rs`: +11 lines (SortDirection enum, DataType ordering)
 
 **Phase 6 Notes:**
+- Total lines added: ~1,323 lines across 4 files
+- All 361 unit tests passing (100% pass rate)
+- All 443 total tests passing (unit + integration + manual + doc tests)
+- Clean formatting (cargo fmt) passed
+- No clippy warnings
+- Full documentation added (Phase 6.2 learning guide and assessment)
 
 ---
 
@@ -536,6 +579,44 @@
 
 ## 📚 Documentation Summary
 
+### Phase 6.2 Learning Guide
+- **File**: `phase6_2-learning-guide.md` (1,108 lines)
+- **Chapters**: 10 comprehensive sections
+- **Content**:
+  - ORDER BY clause: Single and multi-column sorting with ASC/DESC directions
+  - LIMIT clause: Row restriction for performance and pagination
+  - OFFSET clause: Row skipping for pagination
+  - Combined usage: ORDER BY + LIMIT + OFFSET patterns
+  - Parser implementation: New token types, AST changes, parsing logic
+  - Execution engine: Sort and Limit operators with implementation details
+  - Query planning: Operator ordering, column index mapping
+  - Code examples: 7 detailed examples with execution plans
+  - Best practices: Performance considerations and common patterns
+  - Known limitations: Current constraints and future enhancements
+- **Learning Outcomes**: Understanding ORDER BY, LIMIT, OFFSET implementation
+- **Examples**: 7 comprehensive examples with execution plans
+
+### Phase 6.2 Assessment
+- **File**: `phase6_2-assessment.md` (533 lines)
+- **Questions**: 170 total points (passing: 70%)
+- **Parts**:
+  * Part 1: Multiple Choice (20 points, 10 questions)
+  * Part 2: True/False (10 points, 10 questions)
+  * Part 3: Short Answer (30 points, 6 questions)
+  * Part 4: Code Analysis (20 points, 2 questions)
+  * Part 5: Implementation Challenge (15 points) - NULLS FIRST/LAST
+  * Part 6: Debugging Challenge (15 points) - Top N per group
+  * Part 7: Critical Thinking (20 points) - Social media feed design
+  * Part 8: Code Writing Challenge (20 points) - Top N per group function
+  * Part 9: Advanced Topics (20 points) - Window functions/Keyset pagination/Push-down optimization
+  * Bonus Questions: 2 optional questions (10 points each)
+- **Features**:
+  - Complete answer key with explanations
+  - Scoring guide with mastery levels
+  - Practical implementation challenges
+  - Critical thinking scenarios
+  - Preparation checklist for Phase 7
+
 ### Phase 5 Learning Guide
 - **File**: `docs/phase5-learning-guide.md` (2,170 lines)
 - **Chapters**: 12 comprehensive chapters
@@ -649,6 +730,10 @@
   - Total: 998 lines of CI automation
 
 ### Other Documentation
-- **README.md**: 734 lines (project overview, usage examples)
-- **progress.md**: Development tracking and metrics
-- **inline docs**: Comprehensive module and function documentation
+- **README.md**: Updated with Phase 6.2 features and status
+- **progress.md**: This file - development tracking and metrics
+- **inline docs**: Comprehensive module and function documentation (51 doc tests passing)
+- **Phase 6.2 Files**: 
+  - `phase6_2-learning-guide.md`: 1,108 lines
+  - `phase6_2-assessment.md`: 533 lines
+  - Total: 1,641 lines of educational content
