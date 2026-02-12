@@ -14,7 +14,7 @@ echo ""
 INPUT=$(cat <<'EOF'
 SHOW TABLES
 HELP
-LOAD test_data.csv AS employees
+LOAD tests/data/test_data.csv AS employees
 SHOW TABLES
 DESCRIBE employees
 SELECT * FROM employees

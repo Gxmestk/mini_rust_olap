@@ -12,7 +12,7 @@ echo ""
 
 # Define the test input commands
 INPUT=$(cat <<'EOF'
-LOAD test_data.csv AS employees
+LOAD tests/data/test_data.csv AS employees
 SHOW TABLES
 SELECT * FROM employees
 SELECT name, department FROM employees
