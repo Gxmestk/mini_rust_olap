@@ -65,7 +65,7 @@ use crate::error::{DatabaseError, Result};
 /// assert_eq!(column_type.size(), 8);
 /// assert_eq!(column_type.name(), "Int64");
 /// ```
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub enum DataType {
     /// 64-bit signed integer
     /// Range: -9,223,372,036,854,775,808 to 9,223,372,036,854,775,807
@@ -203,6 +203,17 @@ pub enum Value {
 
     /// String value (UTF-8 encoded)
     String(String),
+}
+
+/// Sort direction for ORDER BY clause.
+///
+/// Represents the direction in which values should be sorted.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum SortDirection {
+    /// Ascending order (ASC)
+    Ascending,
+    /// Descending order (DESC)
+    Descending,
 }
 
 impl Value {

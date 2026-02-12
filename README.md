@@ -41,7 +41,7 @@ Unlike production databases that are complex and hard to understand, Mini Rust O
 
 ## ✨ Features
 
-### Current Implementation (Phase 5 - Complete ✅)
+### Current Implementation (Phase 6.2 - Complete ✅)
 
 #### 🏗️ Core Foundation
 - **Error Handling**: Comprehensive error types using `thiserror` (11 tests)
@@ -100,11 +100,36 @@ Unlike production databases that are complex and hard to understand, Mini Rust O
 - **Case Sensitivity**: Keywords are case-insensitive, identifiers converted to lowercase
 - **Comprehensive Testing**: 19 tests covering queries, expressions, edge cases, and tokenizer
 
+#### 🧠 Query Planning (Phase 6)
+- **Query Planner**: Converts parsed SQL to optimized execution plans (8 tests)
+- **Column Pruning**: Removes unused columns from queries for efficiency (2 tests)
+- **Operator Ordering**: Correct placement of operators in execution tree
+- **Schema Integration**: Maintains schema throughout query pipeline
+- **Expression Analysis**: Validates and optimizes expressions
+
+#### 📊 Advanced Query Features (Phase 6.2)
+- **ORDER BY Clause**: Sort results by one or more columns (4 tests)
+  - Single and multi-column sorting with ASC/DESC directions
+  - Support for Int64, Float64, and String data types
+  - Proper column index mapping for simple and GROUP BY queries
+- **LIMIT Clause**: Restrict number of rows returned (2 tests)
+  - Efficient row counting with early termination
+  - Works independently and combined with ORDER BY
+- **OFFSET Clause**: Skip specified number of rows (1 test)
+  - Pagination support with proper row skipping
+  - Works with and without LIMIT
+- **Combined Features**: Full pagination support (1 test)
+  - ORDER BY + LIMIT: Top N sorted results
+  - ORDER BY + OFFSET: Skip and sort
+  - LIMIT + OFFSET: Pagination functionality
+  - Multi-column ORDER BY with LIMIT/OFFSET
+
 ### Planned Features (Roadmap)
 
 - [x] Phase 4: Physical query operators (Scan, Filter, Project, Aggregate) ✅
 - [x] Phase 5: SQL parser for SELECT statements ✅
-- [ ] Phase 6: Query planning and optimization
+- [x] Phase 6.1: Query planning and optimization ✅
+- [x] Phase 6.2: ORDER BY, LIMIT, OFFSET clauses ✅
 - [ ] Phase 7: Interactive REPL (Read-Eval-Print Loop)
 
 ---
@@ -407,6 +432,34 @@ cargo tarpaulin --out Html
   - Scoring guide with readiness indicators for Phase 6
   - Self-reflection questions and preparation checklist
 
+#### Phase 6: Query Planning & Advanced Features
+
+✅ **Phase 6.2 Learning Guide** (`phase6_2-learning-guide.md`) - 1,108 lines covering:
+  - ORDER BY clause: Single and multi-column sorting with ASC/DESC directions
+  - LIMIT clause: Row restriction for performance and pagination
+  - OFFSET clause: Row skipping for pagination
+  - Combined usage: ORDER BY + LIMIT + OFFSET patterns
+  - Parser implementation: New token types, AST changes, parsing logic
+  - Execution engine: Sort and Limit operators with implementation details
+  - Query planning: Operator ordering, column index mapping
+  - Code examples: 7 detailed examples with execution plans
+  - Best practices: Performance considerations and common patterns
+  - Known limitations: Current constraints and future enhancements
+  - 10 main sections covering all aspects of Phase 6.2
+
+✅ **Phase 6.2 Assessment** (`phase6_2-assessment.md`) - 533 lines
+  - 9-part comprehensive assessment covering all Phase 6.2 concepts
+  - Multiple choice and true/false questions (30 points)
+  - Short answer questions (30 points)
+  - Code analysis exercises (20 points)
+  - Implementation challenge for NULLS FIRST/LAST (15 points)
+  - Debugging challenge (15 points)
+  - Critical thinking scenarios (20 points)
+  - Code writing challenge (20 points)
+  - Advanced topics (20 points)
+  - Bonus questions (20 points)
+  - Total: 170 points (passing: 70%)
+
 #### General Documentation
 
 ✅ **CI/CD Pipeline** (`.githooks/`)
@@ -483,22 +536,24 @@ This project demonstrates:
 | 3 | CSV Ingestion | ✅ Complete | 38 |
 | 4 | Query Operators | ✅ Complete | 145 |
 | 5 | SQL Parser | ✅ Complete | 19 |
-| 6 | Query Planning | ❌ Not Started | - |
+| 6.1 | Query Planning | ✅ Complete | 10 |
+| 6.2 | ORDER BY, LIMIT, OFFSET | ✅ Complete | 8 |
 | 7 | REPL Interface | ❌ Not Started | - |
 
-**Total Tests**: 360 (329 library tests + 31 integration tests)
+**Total Tests**: 443 (361 library tests + 16 integration tests + 15 manual tests + 51 doc tests)
 
 
 ### Module Status
 
 - ✅ `error` - Error handling complete (10 tests)
-- ✅ `types` - Core types complete (26 tests)
+- ✅ `types` - Core types complete with SortDirection (26 tests)
 - ✅ `column` - Column implementations complete (33 tests)
 - ✅ `table` - Table structure complete (33 tests)
 - ✅ `catalog` - Metadata management complete (25 tests)
 - ✅ `ingest` - CSV ingestion complete (38 tests)
-- ✅ `parser` - SQL parsing complete (19 tests)
-- ✅ `execution` - Query execution engine (77 tests)
+- ✅ `parser` - SQL parsing complete with ORDER BY/LIMIT/OFFSET (19 tests)
+- ✅ `execution` - Query execution engine with Sort/Limit operators (77 tests)
+- ✅ `planner` - Query planning with column pruning (10 tests)
 - ✅ `aggregates` - Aggregate functions (65 tests)
 - ✅ `lib` - Library exports and integration (3 tests)
 

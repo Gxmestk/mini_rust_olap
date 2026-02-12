@@ -38,6 +38,7 @@
 //! ```
 
 use crate::error::{DatabaseError, Result};
+use crate::types::SortDirection;
 
 // ============================================================================
 // TOKEN DEFINITIONS
@@ -55,6 +56,11 @@ pub enum TokenType {
     And,
     Or,
     Not,
+    Order,
+    Limit,
+    Offset,
+    Asc,
+    Desc,
 
     // Aggregate functions
     Count,
@@ -318,6 +324,11 @@ impl Tokenizer {
             "AND" => TokenType::And,
             "OR" => TokenType::Or,
             "NOT" => TokenType::Not,
+            "ORDER" => TokenType::Order,
+            "LIMIT" => TokenType::Limit,
+            "OFFSET" => TokenType::Offset,
+            "ASC" => TokenType::Asc,
+            "DESC" => TokenType::Desc,
             "COUNT" => TokenType::Count,
             "SUM" => TokenType::Sum,
             "AVG" => TokenType::Avg,
@@ -399,6 +410,12 @@ pub struct SelectStatement {
     pub where_clause: Option<Expression>,
     /// Optional GROUP BY columns
     pub group_by: Option<Vec<String>>,
+    /// Optional ORDER BY clause
+    pub order_by: Option<Vec<OrderByItem>>,
+    /// Optional LIMIT clause
+    pub limit: Option<usize>,
+    /// Optional OFFSET clause
+    pub offset: Option<usize>,
 }
 
 /// Represents an item in the SELECT clause.
@@ -408,6 +425,15 @@ pub enum SelectItem {
     Wildcard,
     /// An expression (column reference, aggregate function, etc.)
     Expression(Expression),
+}
+
+/// Represents an item in the ORDER BY clause.
+#[derive(Debug, Clone, PartialEq)]
+pub struct OrderByItem {
+    /// Column name to sort by
+    pub column: String,
+    /// Sort direction (ASC or DESC)
+    pub direction: SortDirection,
 }
 
 /// Represents an expression in a SQL query.
@@ -536,6 +562,28 @@ impl Parser {
             None
         };
 
+        // Parse optional ORDER BY clause
+        let order_by = if self.match_token(TokenType::Order) {
+            self.consume_token(TokenType::By, "Expected BY after ORDER")?;
+            Some(self.parse_order_by_items()?)
+        } else {
+            None
+        };
+
+        // Parse optional LIMIT clause
+        let limit = if self.match_token(TokenType::Limit) {
+            Some(self.parse_number_literal()?)
+        } else {
+            None
+        };
+
+        // Parse optional OFFSET clause
+        let offset = if self.match_token(TokenType::Offset) {
+            Some(self.parse_number_literal()?)
+        } else {
+            None
+        };
+
         // Should be at EOF now
         self.consume_token(TokenType::EOF, "Expected end of statement")?;
 
@@ -544,6 +592,9 @@ impl Parser {
             from_table,
             where_clause,
             group_by,
+            order_by,
+            limit,
+            offset,
         })
     }
 
@@ -843,6 +894,61 @@ impl Parser {
         }
 
         Ok(columns)
+    }
+
+    /// Parses ORDER BY item list.
+    fn parse_order_by_items(&mut self) -> Result<Vec<OrderByItem>> {
+        let mut items = Vec::new();
+
+        items.push(self.parse_order_by_item()?);
+
+        while self.match_token(TokenType::Comma) {
+            items.push(self.parse_order_by_item()?);
+        }
+
+        Ok(items)
+    }
+
+    /// Parses a single ORDER BY item (column with optional direction).
+    fn parse_order_by_item(&mut self) -> Result<OrderByItem> {
+        let column = self.parse_identifier()?;
+
+        // Check for optional ASC or DESC
+        let direction = if self.match_token(TokenType::Desc) {
+            SortDirection::Descending
+        } else if self.match_token(TokenType::Asc) {
+            SortDirection::Ascending
+        } else {
+            // Default to ASC
+            SortDirection::Ascending
+        };
+
+        Ok(OrderByItem { column, direction })
+    }
+
+    /// Parses a number literal (for LIMIT and OFFSET).
+    fn parse_number_literal(&mut self) -> Result<usize> {
+        match self.peek_token() {
+            Some(token) => match &token.token_type {
+                TokenType::NumberLiteral(num_str) => {
+                    let value = num_str.parse::<usize>().map_err(|_| {
+                        DatabaseError::parser_error(format!(
+                            "Invalid number literal '{}': must be a positive integer",
+                            num_str
+                        ))
+                    })?;
+                    self.advance();
+                    Ok(value)
+                }
+                _ => Err(DatabaseError::parser_error(format!(
+                    "Expected number literal, found {:?}",
+                    token.token_type
+                ))),
+            },
+            None => Err(DatabaseError::parser_error(
+                "Expected number literal, found EOF",
+            )),
+        }
     }
 
     // ============================================================================

@@ -7,7 +7,7 @@
 
 use crate::column::Column;
 use crate::table::Table;
-use crate::types::{DataType, Value};
+use crate::types::{DataType, SortDirection, Value};
 use std::collections::HashMap;
 use std::fmt;
 use std::hash::{Hash, Hasher};
@@ -277,6 +277,98 @@ impl Batch {
     pub fn project(&self, column_indices: &[usize], _aliases: &[String]) -> Result<Batch> {
         // For now, just select - renaming will be handled at the schema level
         self.select(column_indices)
+    }
+
+    /// Skip rows from the beginning of the batch.
+    ///
+    /// # Arguments
+    ///
+    /// * `skip_count` - Number of rows to skip
+    pub fn skip_rows(&self, skip_count: usize) -> Result<Batch> {
+        if skip_count >= self.row_count() {
+            return Err(ExecutionError::Custom(format!(
+                "Cannot skip {} rows from batch with only {} rows",
+                skip_count,
+                self.row_count()
+            )));
+        }
+
+        let mut new_columns = Vec::new();
+        for col in &self.columns {
+            let data_type = col.data_type();
+            let new_col: Arc<dyn Column> = match data_type {
+                DataType::Int64 => {
+                    let mut int_col = crate::column::IntColumn::new();
+                    for row_idx in skip_count..col.len() {
+                        int_col.push_value(col.get(row_idx)?)?;
+                    }
+                    Arc::new(int_col)
+                }
+                DataType::Float64 => {
+                    let mut float_col = crate::column::FloatColumn::new();
+                    for row_idx in skip_count..col.len() {
+                        float_col.push_value(col.get(row_idx)?)?;
+                    }
+                    Arc::new(float_col)
+                }
+                DataType::String => {
+                    let mut string_col = crate::column::StringColumn::new();
+                    for row_idx in skip_count..col.len() {
+                        string_col.push_value(col.get(row_idx)?)?;
+                    }
+                    Arc::new(string_col)
+                }
+            };
+            new_columns.push(new_col);
+        }
+
+        Ok(Batch::new(new_columns))
+    }
+
+    /// Take only the first N rows from the batch.
+    ///
+    /// # Arguments
+    ///
+    /// * `take_count` - Number of rows to take
+    pub fn take_rows(&self, take_count: usize) -> Result<Batch> {
+        if take_count > self.row_count() {
+            return Err(ExecutionError::Custom(format!(
+                "Cannot take {} rows from batch with only {} rows",
+                take_count,
+                self.row_count()
+            )));
+        }
+
+        let mut new_columns = Vec::new();
+        for col in &self.columns {
+            let data_type = col.data_type();
+            let new_col: Arc<dyn Column> = match data_type {
+                DataType::Int64 => {
+                    let mut int_col = crate::column::IntColumn::new();
+                    for row_idx in 0..take_count {
+                        int_col.push_value(col.get(row_idx)?)?;
+                    }
+                    Arc::new(int_col)
+                }
+                DataType::Float64 => {
+                    let mut float_col = crate::column::FloatColumn::new();
+                    for row_idx in 0..take_count {
+                        float_col.push_value(col.get(row_idx)?)?;
+                    }
+                    Arc::new(float_col)
+                }
+                DataType::String => {
+                    let mut string_col = crate::column::StringColumn::new();
+                    for row_idx in 0..take_count {
+                        string_col.push_value(col.get(row_idx)?)?;
+                    }
+                    Arc::new(string_col)
+                }
+            };
+            new_columns.push(new_col);
+        }
+
+        Ok(Batch::new(new_columns))
     }
 }
 
@@ -1682,6 +1774,446 @@ impl Operator for GroupBy {
             .ok_or(ExecutionError::Custom(
                 "Column names not initialized".to_string(),
             ))
+    }
+
+    fn is_open(&self) -> bool {
+        self.state == OperatorState::Open
+    }
+}
+
+// ============================================================================
+// SORT OPERATOR (ORDER BY)
+// ============================================================================
+
+/// Sort operator for ORDER BY clause.
+///
+/// Sort operator reads all data from the child operator and sorts it
+/// according to the specified columns and directions. Since sorting
+/// requires all data, this operator reads all rows in open().
+pub struct Sort {
+    /// The child operator to read data from
+    child: Box<dyn Operator>,
+
+    /// Indices of columns to sort by
+    sort_columns: Vec<usize>,
+
+    /// Sort direction for each column
+    sort_directions: Vec<SortDirection>,
+
+    /// Operator state
+    state: OperatorState,
+
+    /// Sorted data after sorting
+    sorted_data: Option<Batch>,
+
+    /// Current position in sorted data
+    current_row: usize,
+
+    /// Batch size for output
+    batch_size: usize,
+}
+
+impl Sort {
+    /// Create a new Sort operator.
+    ///
+    /// # Arguments
+    ///
+    /// * `child` - The child operator to read data from
+    /// * `sort_columns` - Indices of columns to sort by
+    /// * `sort_directions` - Sort direction for each column (true = ascending, false = descending)
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// # use mini_rust_olap::execution::Sort;
+    /// # use mini_rust_olap::execution::TableScan;
+    /// # use mini_rust_olap::execution::Operator;
+    /// # use mini_rust_olap::types::SortDirection;
+    /// # use mini_rust_olap::table::Table;
+    /// use std::sync::Arc;
+    ///
+    /// let table = Table::new("users".to_string());
+    /// // ... add columns to table ...
+    ///
+    /// let scan = TableScan::new(table);
+    /// let mut sort = Sort::new(
+    ///     Box::new(scan),
+    ///     vec![0, 1],
+    ///     vec![SortDirection::Ascending, SortDirection::Descending],
+    /// );
+    ///
+    /// sort.open().unwrap();
+    /// while let Some(batch) = sort.next_batch().unwrap() {
+    ///     // Process sorted batches
+    /// }
+    /// sort.close().unwrap();
+    /// ```
+    pub fn new(
+        child: Box<dyn Operator>,
+        sort_columns: Vec<usize>,
+        sort_directions: Vec<SortDirection>,
+    ) -> Self {
+        Sort {
+            child,
+            sort_columns,
+            sort_directions,
+            state: OperatorState::NotOpen,
+            sorted_data: None,
+            current_row: 0,
+            batch_size: 1024,
+        }
+    }
+
+    /// Set the batch size for output.
+    pub fn with_batch_size(mut self, batch_size: usize) -> Self {
+        self.batch_size = batch_size;
+        self
+    }
+}
+
+impl Operator for Sort {
+    fn open(&mut self) -> Result<()> {
+        if self.state == OperatorState::Open {
+            return Err(ExecutionError::OperatorAlreadyOpen);
+        }
+
+        // Open child operator
+        self.child.open()?;
+
+        // Read all data from child
+        let mut all_rows: Vec<Vec<Value>> = Vec::new();
+        let mut all_batches: Vec<Batch> = Vec::new();
+
+        while let Some(batch) = self.child.next_batch()? {
+            all_batches.push(batch);
+        }
+
+        // Flatten all batches into rows
+        for batch in &all_batches {
+            for row_idx in 0..batch.row_count() {
+                let mut row = Vec::new();
+                for col_idx in 0..batch.column_count() {
+                    row.push(batch.get(row_idx, col_idx)?);
+                }
+                all_rows.push(row);
+            }
+        }
+
+        // Sort the rows
+        all_rows.sort_by(|row_a, row_b| {
+            for (col_idx, direction) in self.sort_columns.iter().zip(self.sort_directions.iter()) {
+                let val_a = &row_a[*col_idx];
+                let val_b = &row_b[*col_idx];
+
+                let cmp = match (val_a, val_b) {
+                    (Value::Int64(a), Value::Int64(b)) => a.cmp(b),
+                    (Value::Float64(a), Value::Float64(b)) => {
+                        // Use total_cmp for float comparison to handle NaN properly
+                        a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal)
+                    }
+                    (Value::String(a), Value::String(b)) => a.cmp(b),
+                    (a, b) => {
+                        // Different types - compare data types as fallback
+                        a.data_type().cmp(&b.data_type())
+                    }
+                };
+
+                if cmp != std::cmp::Ordering::Equal {
+                    // Reverse if descending
+                    return if *direction == SortDirection::Descending {
+                        cmp.reverse()
+                    } else {
+                        cmp
+                    };
+                }
+            }
+
+            std::cmp::Ordering::Equal
+        });
+
+        // Convert sorted rows back to columns
+        if all_rows.is_empty() {
+            self.sorted_data = Some(Batch::empty());
+        } else {
+            let col_count = all_rows[0].len();
+            let mut columns: Vec<Vec<Value>> = vec![Vec::new(); col_count];
+
+            for row in &all_rows {
+                for (col_idx, value) in row.iter().enumerate() {
+                    columns[col_idx].push(value.clone());
+                }
+            }
+
+            // Convert to actual column types
+            let schema = self.child.schema()?;
+            let column_names = self.child.column_names()?;
+            let mut final_columns: Vec<Arc<dyn Column>> = Vec::new();
+
+            for (i, col_name) in column_names.iter().enumerate() {
+                let data_type = &schema[col_name];
+                let values = &columns[i];
+
+                let column: Arc<dyn Column> = match data_type {
+                    DataType::Int64 => {
+                        let mut int_col = crate::column::IntColumn::new();
+                        for value in values {
+                            int_col.push_value(value.clone())?;
+                        }
+                        Arc::new(int_col)
+                    }
+                    DataType::Float64 => {
+                        let mut float_col = crate::column::FloatColumn::new();
+                        for value in values {
+                            float_col.push_value(value.clone())?;
+                        }
+                        Arc::new(float_col)
+                    }
+                    DataType::String => {
+                        let mut string_col = crate::column::StringColumn::new();
+                        for value in values {
+                            string_col.push_value(value.clone())?;
+                        }
+                        Arc::new(string_col)
+                    }
+                };
+
+                final_columns.push(column);
+            }
+
+            self.sorted_data = Some(Batch::new(final_columns));
+        }
+
+        self.current_row = 0;
+        self.state = OperatorState::Open;
+
+        Ok(())
+    }
+
+    fn next_batch(&mut self) -> Result<Option<Batch>> {
+        if self.state != OperatorState::Open {
+            return Err(ExecutionError::OperatorNotOpen);
+        }
+
+        let sorted_data = self.sorted_data.as_ref().unwrap();
+        let total_rows = sorted_data.row_count();
+
+        if self.current_row >= total_rows {
+            return Ok(None);
+        }
+
+        let end_row = std::cmp::min(self.current_row + self.batch_size, total_rows);
+        let _batch_size = end_row - self.current_row;
+
+        // Create a batch with the rows for this batch
+        let mut batch_columns: Vec<Arc<dyn Column>> = Vec::new();
+        let column_count = sorted_data.column_count();
+
+        for col_idx in 0..column_count {
+            let original_column = sorted_data.column(col_idx)?;
+
+            // Extract rows for this batch
+            let batch_data: Vec<Value> = (self.current_row..end_row)
+                .map(|row_idx| {
+                    original_column
+                        .get(row_idx)
+                        .map_err(|e| ExecutionError::Custom(e.to_string()))
+                })
+                .collect::<Result<Vec<_>>>()?;
+
+            let data_type = original_column.data_type();
+            let batch_column: Arc<dyn Column> = match data_type {
+                DataType::Int64 => {
+                    let mut int_col = crate::column::IntColumn::new();
+                    for value in batch_data {
+                        int_col.push_value(value)?;
+                    }
+                    Arc::new(int_col)
+                }
+                DataType::Float64 => {
+                    let mut float_col = crate::column::FloatColumn::new();
+                    for value in batch_data {
+                        float_col.push_value(value)?;
+                    }
+                    Arc::new(float_col)
+                }
+                DataType::String => {
+                    let mut string_col = crate::column::StringColumn::new();
+                    for value in batch_data {
+                        string_col.push_value(value)?;
+                    }
+                    Arc::new(string_col)
+                }
+            };
+
+            batch_columns.push(batch_column);
+        }
+
+        self.current_row = end_row;
+
+        Ok(Some(Batch::new(batch_columns)))
+    }
+
+    fn close(&mut self) -> Result<()> {
+        self.state = OperatorState::Closed;
+        self.child.close()
+    }
+
+    fn schema(&self) -> Result<std::collections::HashMap<String, DataType>> {
+        self.child.schema()
+    }
+
+    fn column_names(&self) -> Result<Vec<String>> {
+        self.child.column_names()
+    }
+
+    fn is_open(&self) -> bool {
+        self.state == OperatorState::Open
+    }
+}
+
+// ============================================================================
+// LIMIT OPERATOR (LIMIT/OFFSET)
+// ============================================================================
+
+/// Limit operator for LIMIT/OFFSET clause.
+///
+/// Limit operator skips a specified number of rows (OFFSET) and then
+/// returns up to a specified number of rows (LIMIT). This operator can
+/// stop reading from the child operator once it has read enough rows.
+pub struct Limit {
+    /// The child operator to read data from
+    child: Box<dyn Operator>,
+
+    /// Maximum number of rows to return
+    limit: usize,
+
+    /// Number of rows to skip
+    offset: usize,
+
+    /// Number of rows already returned
+    rows_returned: usize,
+
+    /// Number of rows already skipped
+    rows_skipped: usize,
+
+    /// Operator state
+    state: OperatorState,
+}
+
+impl Limit {
+    /// Create a new Limit operator.
+    ///
+    /// # Arguments
+    ///
+    /// * `child` - The child operator to read data from
+    /// * `limit` - Maximum number of rows to return (if None, return all rows after offset)
+    /// * `offset` - Number of rows to skip
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// # use mini_rust_olap::execution::Limit;
+    /// # use mini_rust_olap::execution::TableScan;
+    /// # use mini_rust_olap::execution::Operator;
+    /// # use mini_rust_olap::table::Table;
+    /// use std::sync::Arc;
+    ///
+    /// let table = Table::new("users".to_string());
+    /// // ... add columns to table ...
+    ///
+    /// let scan = TableScan::new(table);
+    /// let mut limit = Limit::new(Box::new(scan), Some(5), 10);
+    ///
+    /// limit.open().unwrap();
+    /// while let Some(batch) = limit.next_batch().unwrap() {
+    ///     // Process limited batches
+    /// }
+    /// limit.close().unwrap();
+    /// ```
+    pub fn new(child: Box<dyn Operator>, limit: Option<usize>, offset: usize) -> Self {
+        Limit {
+            child,
+            limit: limit.unwrap_or(usize::MAX),
+            offset,
+            rows_returned: 0,
+            rows_skipped: 0,
+            state: OperatorState::NotOpen,
+        }
+    }
+}
+
+impl Operator for Limit {
+    fn open(&mut self) -> Result<()> {
+        if self.state == OperatorState::Open {
+            return Err(ExecutionError::OperatorAlreadyOpen);
+        }
+
+        self.child.open()?;
+        self.rows_returned = 0;
+        self.rows_skipped = 0;
+        self.state = OperatorState::Open;
+
+        Ok(())
+    }
+
+    fn next_batch(&mut self) -> Result<Option<Batch>> {
+        if self.state != OperatorState::Open {
+            return Err(ExecutionError::OperatorNotOpen);
+        }
+
+        // If we've already returned enough rows, stop
+        if self.rows_returned >= self.limit {
+            return Ok(None);
+        }
+
+        // Get next batch from child
+        let mut batch = match self.child.next_batch()? {
+            Some(b) => b,
+            None => return Ok(None),
+        };
+
+        // Apply offset if we haven't skipped enough rows yet
+        if self.rows_skipped < self.offset {
+            let batch_row_count = batch.row_count();
+
+            if self.rows_skipped + batch_row_count <= self.offset {
+                // Entire batch should be skipped
+                self.rows_skipped += batch_row_count;
+                return self.next_batch();
+            } else {
+                // Need to skip part of this batch
+                let skip_count = self.offset - self.rows_skipped;
+                batch = batch.skip_rows(skip_count)?;
+                self.rows_skipped += skip_count;
+            }
+        }
+
+        // Apply limit if this batch would exceed our limit
+        let remaining_limit = self.limit - self.rows_returned;
+        if batch.row_count() > remaining_limit {
+            batch = batch.take_rows(remaining_limit)?;
+        }
+
+        self.rows_returned += batch.row_count();
+
+        if batch.is_empty() {
+            Ok(None)
+        } else {
+            Ok(Some(batch))
+        }
+    }
+
+    fn close(&mut self) -> Result<()> {
+        self.state = OperatorState::Closed;
+        self.child.close()
+    }
+
+    fn schema(&self) -> Result<std::collections::HashMap<String, DataType>> {
+        self.child.schema()
+    }
+
+    fn column_names(&self) -> Result<Vec<String>> {
+        self.child.column_names()
     }
 
     fn is_open(&self) -> bool {
