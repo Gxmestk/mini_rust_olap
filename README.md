@@ -41,7 +41,7 @@ Unlike production databases that are complex and hard to understand, Mini Rust O
 
 ## ✨ Features
 
-### Current Implementation (Phase 6.2 - Complete ✅)
+### Current Implementation (Phase 7 - Complete ✅)
 
 #### 🏗️ Core Foundation
 - **Error Handling**: Comprehensive error types using `thiserror` (11 tests)
@@ -122,15 +122,27 @@ Unlike production databases that are complex and hard to understand, Mini Rust O
   - ORDER BY + LIMIT: Top N sorted results
   - ORDER BY + OFFSET: Skip and sort
   - LIMIT + OFFSET: Pagination functionality
-  - Multi-column ORDER BY with LIMIT/OFFSET
+  - **Multi-column ORDER BY with LIMIT/OFFSET**
 
-### Planned Features (Roadmap)
+  #### 💻 Interactive REPL (Phase 7)
+  - **Command History**: Full readline support with `rustyline` for persistent command history
+  - **CSV Loading**: LOAD command to import CSV files into the catalog with automatic type inference
+  - **SQL Query Execution**: Full support for SELECT queries with all clauses (WHERE, GROUP BY, ORDER BY, LIMIT)
+  - **Catalog Management**: SHOW TABLES and DESCRIBE commands to inspect database state
+  - **User Interface**: Clean ASCII table formatting for query results and schema display
+  - **Error Handling**: Comprehensive error messages with box formatting and detailed context
+  - **Performance Metrics**: Execution timing displayed for all operations
+  - **Utility Commands**: HELP, CLEAR, and EXIT for user interaction
+  - **Aggregate Functions**: COUNT, SUM, AVG, MIN, MAX working seamlessly in REPL
+  - **Pagination**: Result sets limited to 50 rows by default to prevent overwhelming output
 
-- [x] Phase 4: Physical query operators (Scan, Filter, Project, Aggregate) ✅
-- [x] Phase 5: SQL parser for SELECT statements ✅
-- [x] Phase 6.1: Query planning and optimization ✅
-- [x] Phase 6.2: ORDER BY, LIMIT, OFFSET clauses ✅
-- [ ] Phase 7: Interactive REPL (Read-Eval-Print Loop)
+  ### Planned Features (Roadmap)
+
+  - [x] Phase 4: Physical query operators (Scan, Filter, Project, Aggregate) ✅
+  - [x] Phase 5: SQL parser for SELECT statements ✅
+  - [x] Phase 6.1: Query planning and optimization ✅
+  - [x] Phase 6.2: ORDER BY, LIMIT, OFFSET clauses ✅
+  - [x] Phase 7: Interactive REPL (Read-Eval-Print Loop) ✅
 
 ---
 

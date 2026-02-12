@@ -1,1 +1,4 @@
 /target
+
+# REPL history files
+.olap_history
