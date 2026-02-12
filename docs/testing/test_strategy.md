@@ -457,8 +457,8 @@ cargo bench -- --save-baseline main
 ### Test Count Summary
 
 - **Unit Tests**: 361 passing
-- **Integration Tests**: 15 passing
-- **Manual Query Tests**: 16 passing
+- **Integration Tests**: 16 passing
+- **Manual Query Tests**: 15 passing
 - **Doc Tests**: 34 active (51 total, 17 ignored)
 - **Total Active Tests**: 446 passing
 

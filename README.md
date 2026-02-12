@@ -716,10 +716,10 @@ cargo tarpaulin --out Html
 
 ### Current Test Status
 
-- **Total Tests**: 446 passing ✅ (361 library tests + 15 integration tests + 16 manual tests + 34 active doc tests [17 ignored] + 20 property-based tests)
+- **Total Tests**: 446 passing ✅ (361 library tests + 16 integration tests + 15 manual tests + 34 active doc tests [17 ignored] + 20 property-based tests)
 - **Library Tests**: 361 (error: 10, types: 26, column: 33, table: 33, catalog: 25, ingest: 38, execution: 77, aggregates: 65, parser: 19, planner: 10, lib: 3)
-- **Integration Tests**: 15 (operator chaining: 16)
-- **Manual Query Tests**: 16
+- **Integration Tests**: 16 (operator chaining: 16)
+- **Manual Query Tests**: 15
 - **Documentation Tests**: 51 total (34 active, 17 ignored)
 - **Code Coverage**: High test coverage across all implemented phases (Foundation, Storage Layer, CSV Ingestion, Query Operators, SQL Parser, Query Planning, Advanced Query Features)
 
@@ -982,7 +982,7 @@ This project demonstrates:
 | 8 | Additional Tasks & Quality Improvements | ✅ Complete | 20 |
 | - | Project Reorganization | ✅ Complete | - |
 
-**Total Tests**: 446 (361 library tests + 15 integration tests + 16 manual tests + 34 active doc tests [17 ignored] + 20 property-based tests)
+**Total Tests**: 446 (361 library tests + 16 integration tests + 15 manual tests + 34 active doc tests [17 ignored] + 20 property-based tests)
 **Examples**: 2 working examples with comprehensive documentation
 **Benchmarks**: 7 benchmark categories using criterion
 

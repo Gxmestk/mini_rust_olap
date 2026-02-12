@@ -606,8 +606,8 @@ Phase 8 focused on completing additional tasks identified in the project roadmap
 | Category | Tests | Status |
 |-----------|-------|--------|
 | Unit Tests | 361 | ✅ All passing |
-| Integration Tests | 15 | ✅ All passing |
-| Manual Query Tests | 16 | ✅ All passing |
+| Integration Tests | 16 | ✅ All passing |
+| Manual Query Tests | 15 | ✅ All passing |
 | Doc Tests | 34 active (51 total, 17 ignored) | ✅ All passing |
 | Property-Based Tests | 20 | ✅ All passing |
 | **Total** | **446** | ✅ **All passing** |
