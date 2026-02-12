@@ -489,7 +489,7 @@ cargo tarpaulin --lib -- --test --out Html --output-dir target/tarpaulin-report 
 
 **What's Checked**:
 - `README.md` present?
-- `progress.md` present (recommended)?
+- `docs/references/progress.md` present (recommended)?
 - `docs/` directory exists?
 - `docs/phase1-learning-guide.md` exists?
 

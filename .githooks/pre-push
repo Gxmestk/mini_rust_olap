@@ -307,8 +307,8 @@ if [ ! -f "README.md" ]; then
     DOCS_OK=false
 fi
 
-if [ ! -f "progress.md" ]; then
-    print_warning "progress.md not found (recommended)"
+if [ ! -f "docs/references/progress.md" ]; then
+    print_warning "docs/references/progress.md not found (recommended)"
 fi
 
 if [ ! -d "docs" ]; then

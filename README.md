@@ -242,8 +242,15 @@ cargo build
 # Run tests
 cargo test
 
-# (Optional) Run with debug logging
-RUST_LOG=debug cargo run
+# Run examples (after building)
+cargo run --example simple_table
+cargo run --example csv_loading
+
+# Run benchmarks (after building)
+cargo bench
+
+# Start the REPL
+cargo run --release
 ```
 
 ### Basic Usage Example
@@ -471,6 +478,70 @@ Goodbye!
 
 ---
 
+## 🎯 Examples
+
+The project includes comprehensive examples demonstrating library usage:
+
+### Running Examples
+
+```bash
+# Run all examples
+cargo run --example simple_table
+cargo run --example csv_loading
+
+# List all available examples
+cargo run --example --help
+```
+
+### Available Examples
+
+1. **`examples/simple_table.rs`**
+   - Demonstrates programmatic table creation
+   - Shows manual data insertion
+   - Runs SQL queries against in-memory tables
+   - Perfect for understanding the core API
+
+2. **`examples/csv_loading.rs`**
+   - Shows how to load CSV files
+   - Demonstrates various SQL operations
+   - Includes filtering, grouping, sorting, and aggregation
+   - Great reference for real-world usage
+
+For detailed explanations of each example, see `examples/README.md`.
+
+## 🔬 Benchmarks
+
+Performance benchmarks are provided using the criterion crate to measure query performance:
+
+### Running Benchmarks
+
+```bash
+# Run all benchmarks
+cargo bench
+
+# Run specific benchmark
+cargo bench full_scan
+cargo bench aggregation
+
+# Run with custom settings
+cargo bench -- --profile-time 10  # For flamegraphs
+
+# View detailed report (HTML)
+open target/criterion/report/index.html
+```
+
+### Benchmark Categories
+
+- **`full_scan`** - Table scan performance
+- **`filter`** - Predicate filtering
+- **`projection`** - Column selection
+- **`aggregation`** - Aggregate functions
+- **`group_by`** - Grouping operations
+- **`order_by`** - Sorting performance
+- **`complex_query`** - Multi-operator query chains
+
+For detailed interpretation of benchmark results, see `benches/README.md`.
+
 ## 🧪 Testing
 
 ### Running Tests
@@ -490,6 +561,11 @@ cargo test -- --nocapture
 
 # Run tests with filtering
 cargo test test_manual_sum
+
+# Run test scripts
+./scripts/test_repl.sh          # Comprehensive REPL testing
+./scripts/test_repl_simple.sh   # Basic REPL testing
+./scripts/final_test.sh         # Final integration testing
 ```
 
 ### Test Coverage
@@ -713,9 +789,12 @@ This project demonstrates:
 | 5 | SQL Parser | ✅ Complete | 19 |
 | 6.1 | Query Planning | ✅ Complete | 10 |
 | 6.2 | ORDER BY, LIMIT, OFFSET | ✅ Complete | 8 |
-| 7 | REPL Interface | ❌ Not Started | - |
+| 7 | REPL Interface | ✅ Complete | 165 |
+| - | Project Reorganization | ✅ Complete | - |
 
 **Total Tests**: 443 (361 library tests + 16 integration tests + 15 manual tests + 51 doc tests)
+**Examples**: 2 working examples with comprehensive documentation
+**Benchmarks**: 7 benchmark categories using criterion
 
 
 ### Module Status
@@ -738,8 +817,8 @@ This project demonstrates:
 
 ```
 mini_rust_olap/
-├── src/
-│   ├── main.rs              # Entry point (REPL - future Phase 7)
+├── src/                     # Core library implementation
+│   ├── main.rs              # Entry point (REPL)
 │   ├── lib.rs               # Library exports and integration tests
 │   ├── error.rs             # Error types (complete)
 │   ├── types.rs             # Data types (complete)
@@ -750,21 +829,38 @@ mini_rust_olap/
 │   ├── parser.rs            # SQL parser (complete)
 │   ├── execution.rs         # Query execution and operators (complete)
 │   └── aggregates.rs        # Aggregate functions (complete)
-├── tests/
+├── examples/                # Example programs demonstrating library usage
+│   ├── simple_table.rs      # Programmatic table creation and SQL queries
+│   ├── csv_loading.rs       # CSV loading and various SQL operations
+│   └── README.md            # Guide for running and understanding examples
+├── benches/                 # Performance benchmarks using criterion
+│   ├── query_benchmark.rs   # Comprehensive benchmark suite
+│   └── README.md            # Guide for running benchmarks
+├── tests/                   # Integration tests
+│   ├── data/                # Test data files
+│   │   └── test_data.csv    # Sample data for testing
 │   ├── manual_query.rs      # Manual query integration tests
 │   └── integration_tests.rs # Operator chain integration tests
-├── docs/
-│   ├── phase{1-5}-learning-guide.md
-│   ├── phase{1-5}-assessment.md
+├── scripts/                 # Shell scripts for testing and automation
+│   ├── test_repl.sh         # Comprehensive REPL testing
+│   ├── test_repl_simple.sh  # Basic REPL testing
+│   └── final_test.sh        # Final integration testing
+├── docs/                    # Learning guides and assessments
+│   ├── phase{1-7}-learning-guide.md
+│   ├── phase{1-7}-assessment.md
 │   ├── ci-pipeline-setup.md
 │   ├── ci-pipeline-assessment.md
 │   ├── code-review-workflow.md
-│   └── code-review-assessment.md
+│   ├── code-review-assessment.md
+│   └── references/          # Reference documentation
+│       ├── prd.md           # Project Requirements Document
+│       ├── progress.md      # Development tracking
+│       └── REORGANIZATION_SUMMARY.md
 ├── .githooks/               # Git hooks for CI/CD
 ├── Cargo.toml               # Dependencies
+├── Cargo.lock               # Dependency lock file
 ├── README.md                # This file ✅
-├── progress.md              # Development tracking
-└── prd.md                   # Project Requirements Document
+└── .gitignore               # Git ignore rules
 ```
 
 ---
@@ -804,19 +900,23 @@ mini_rust_olap/
 ### Setting Up Development Environment
 
 ```bash
-# Install Rust toolchain
-rustup install stable
-rustup default stable
+# Clone and setup
+git clone https://github.com/yourusername/mini_rust_olap.git
+cd mini_rust_olap
 
 # Install development tools
-cargo install cargo-watch    # Auto-reload on file changes
-cargo install cargo-edit     # Easy dependency management
-cargo install cargo-tarpaulin # Coverage reports
+rustup update
+cargo install cargo-tarpaulin  # For code coverage
 
-# Enable pre-commit hooks (optional)
-cargo install cargo-husky
+# Setup git hooks (optional)
+chmod +x scripts/setup-ci-hooks.sh
+./scripts/setup-ci-hooks.sh
+
+# Build and test
+cargo build
+cargo test
+cargo bench
 ```
-
 ### Development Workflow
 
 ```bash
@@ -835,7 +935,7 @@ cargo doc --open
 
 ### Adding New Features
 
-1. Update `progress.md` to track the feature
+1. Update `docs/references/progress.md` to track the feature
 2. Write tests first (TDD approach)
 3. Implement the feature
 4. Add documentation comments
